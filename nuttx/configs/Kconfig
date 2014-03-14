@@ -996,7 +996,7 @@ config ARCH_BOARD
 	default "zp214xpa"            if ARCH_BOARD_ZP214XPA
 	default "zkit-arm-1769"       if ARCH_BOARD_ZKITARM
 	default "sim"                 if ARCH_BOARD_SIM
-	default "Flash-Power"         if ARCH_BOARD_Flash_POWER
+	default "flash-power"         if ARCH_BOARD_FLASH_POWER
         default ""                    if ARCH_BOARD_CUSTOM
 
 comment "Common Board Options"
@@ -1243,8 +1243,8 @@ endif
 if ARCH_BOARD_STM3210E_EVAL
 source "configs/stm3210e-eval/Kconfig"
 endif
-if ARCH_BOARD_CF_POWER
-source "configs/Flash-Power/Kconfig"
+if ARCH_BOARD_FLASH_POWER
+source "configs/flash-power/Kconfig"
 endif
 if ARCH_BOARD_STM3220G_EVAL
 source "configs/stm3220g-eval/Kconfig"

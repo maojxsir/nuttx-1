@@ -106,7 +106,7 @@
 #define STM32_SPI1_BASE      0x40013000     /* 0x40013000 - 0x400133ff: SPI1 */
 #define STM32_TIM8_BASE      0x40013400     /* 0x40013400 - 0x400137ff: TIM8 timer */
 #define STM32_USART1_BASE    0x40013800     /* 0x40013800 - 0x40013bff: USART1 */
-#define STM32_ADC3_BASE      0x40012800     /* 0x40012800 - 0x40013c00: ADC3 */
+#define STM32_ADC3_BASE      0x40013c00     /* 0x40012800 - 0x40013c00: ADC3 */
                                             /* 0x40013c00 - 0x40013fff: Reserved */
 #define STM32_TIM15_BASE     0x40014400     /* 0x40014400 - 0x400147ff: TIM15 */
 #define STM32_TIM16_BASE     0x40014400     /* 0x40014400 - 0x400147ff: TIM16 */
