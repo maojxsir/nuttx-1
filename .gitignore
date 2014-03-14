@@ -9,4 +9,6 @@ Make.dep
 .*.swp
 core
 .gdbinit
-cscope.out
+cscope.*
+.tags*
+*sublime*

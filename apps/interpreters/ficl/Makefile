@@ -50,7 +50,7 @@ CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(BUILDDIR)/$(FICL_SUBDIR) $(BU
 
 # Source Files
 
-ASRCS =
+ASRCS = setjmp.S
 CXXSRCS =
 CSRCS = nuttx.c
 
