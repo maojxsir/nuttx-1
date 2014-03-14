@@ -1,0 +1,46 @@
+#ifndef _CF_POWER_FONT_H
+#define _CF_POWER_FONT_H
+
+static uint8_t g_ledfont[] = {
+  0x3F,  // 0
+  0x06,  // 1
+  0x5B,  // 2
+  0x4F,  // 3
+  0x66,  // 4
+  0x6D,  // 5
+  0x7D,  // 6
+  0x07,  // 7
+  0x7F,  // 8
+  0x6F,  // 9
+  0x77,  // A
+  0x3C,  // b
+  0x39,  // C
+  0x5E,  // d
+  0x79,  // E
+  0x71,  // F
+  0x3d,  // G
+  0x76,  // H
+  0x10,  // I
+  0x1E,  // J
+  0x3A,  // K
+  0x38,  // L
+  0x55,  // M
+  0x54,  // N
+  0x5c,  // O
+  0x73,  // P
+  0x67,  // q
+  0x50,  // r
+  0x66,  // S
+  0x78,  // t
+  0x3E,  // U
+  0x7E,  // V
+  0x1D,  // w
+  0x6A,  // x
+  0x6E,  // y
+  0x49,  // z
+  0x40,  // -
+};
+
+#define FONT_A_POS  (10)
+#define FONT_NOP_POS (sizeof(g_ledfont)-1)
+#endif

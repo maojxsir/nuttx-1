@@ -633,6 +633,10 @@ config ARCH_BOARD_STM32_TINY
 		STM32F103C8T6 micro-controller chip, and is (always ?) bundled with
 		an nRF24L01+ wireless module.
 
+config ARCH_BOARD_FLASH_POWER
+        bool "Flash Power board by gan0ling'Studio"
+        depends on ARCH_CHIP_STM32F103VCT6
+
 config ARCH_BOARD_STM3210E_EVAL
 	bool "STMicro STM3210E-EVAL development board"
 	depends on ARCH_CHIP_STM32F103ZET6
@@ -992,6 +996,8 @@ config ARCH_BOARD
 	default "zp214xpa"            if ARCH_BOARD_ZP214XPA
 	default "zkit-arm-1769"       if ARCH_BOARD_ZKITARM
 	default "sim"                 if ARCH_BOARD_SIM
+	default "Flash-Power"         if ARCH_BOARD_Flash_POWER
+        default ""                    if ARCH_BOARD_CUSTOM
 
 comment "Common Board Options"
 
@@ -1236,6 +1242,9 @@ source "configs/stm32_tiny/Kconfig"
 endif
 if ARCH_BOARD_STM3210E_EVAL
 source "configs/stm3210e-eval/Kconfig"
+endif
+if ARCH_BOARD_CF_POWER
+source "configs/Flash-Power/Kconfig"
 endif
 if ARCH_BOARD_STM3220G_EVAL
 source "configs/stm3220g-eval/Kconfig"
