@@ -59,6 +59,7 @@
 #include "stm32.h"
 #include "stm32_dac.h"
 #include "stm32_rcc.h"
+#include "stm32_tim.h"
 #include "stm32_dma.h"
 
 #ifdef CONFIG_DAC
@@ -153,6 +154,13 @@
 #   define DAC1_DMA_CHAN   DMAMAP_DAC1
 #   define DAC2_DMA_CHAN   DMAMAP_DAC2
 # endif
+#endif
+
+#ifdef HAVE_DMA
+#  define  DACIOC_DMA_SETUP   _ANIOC(0xF0)
+#  define  DACIOC_DMA_START   _ANIOC(0xF1)
+#  define  DACIOC_DMA_STOP    _ANIOC(0xF2)
+#  define  DACIOC_DMA_GETPTR  _ANIOC(0xF3)
 #endif
 
 /* Timer configuration.  The STM32 supports 8 different trigger for DAC
@@ -422,7 +430,7 @@ static struct stm32_chan_s g_dac2priv =
   .dmachan    = DAC2_DMA_CHAN,
   .timer      = CONFIG_STM32_DAC2_TIMER,
   .tsel       = DAC2_TSEL_VALUE,
-  .tbase      = DAC2_TIMER_BASE
+  .tbase      = DAC2_TIMER_BASE,
   .tfrequency = CONFIG_STM32_DAC2_TIMER_FREQUENCY,
 #endif
 };
@@ -605,8 +613,8 @@ static void dac_reset(FAR struct dac_dev_s *dev)
 
 static int dac_setup(FAR struct dac_dev_s *dev)
 {
-# warning "Missing logic"
-  return -ENOSYS;
+//# warning "Missing logic"
+  return 0;
 }
 
 /****************************************************************************
@@ -661,6 +669,7 @@ static void dac_txint(FAR struct dac_dev_s *dev, bool enable)
 
 static void dac_dmatxcallback(DMA_HANDLE handle, uint8_t isr, void *arg)
 {
+  printf("dac dma ok\n");
 }
 
 /****************************************************************************
@@ -762,7 +771,69 @@ static int dac_send(FAR struct dac_dev_s *dev, FAR struct dac_msg_s *msg)
 
 static int  dac_ioctl(FAR struct dac_dev_s *dev, int cmd, unsigned long arg)
 {
-  return -ENOTTY;
+  struct stm32_chan_s *chan = dev->ad_priv;
+
+  switch(cmd) {
+#ifdef HAVE_DMA
+
+  case DACIOC_DMA_SETUP:
+    {
+      if (chan->hasdma) {
+      /* Configure the DMA stream/channel.
+       *
+       * - Channel number
+       * - Peripheral address
+       * - Direction: Memory to peripheral
+       * - Disable peripheral address increment
+       * - Enable memory address increment
+       * - Peripheral data size: half word
+       * - Mode: circular???
+       * - Priority: ?
+       * - FIFO mode: disable
+       * - FIFO threshold: half full
+       * - Memory Burst: single
+       * - Peripheral Burst: single
+       */
+
+      uint32_t ccr =
+          DMA_CCR_MSIZE_16BITS | /* Memory size */
+          DMA_CCR_PSIZE_16BITS | /* Peripheral size */
+          DMA_CCR_MINC |         /* Memory increment mode */
+          DMA_CCR_CIRC |         /* Circular buffer */
+          DMA_CCR_DIR;           /* Read from memory */
+
+      stm32_dmasetup(chan->dma, chan->dro, (uint32_t)chan->dmabuffer,
+                     CONFIG_STM32_DAC_DMA_BUFFER_SIZE, ccr);
+      break;
+    }
+  }
+
+  case DACIOC_DMA_START:
+    stm32_dmastart(chan->dma, dac_dmatxcallback, chan, true);
+    /* Enable DMA for DAC Channel */
+    stm32_dac_modify_cr(chan, 0, DAC_CR_DMAEN);
+    break;
+
+  case DACIOC_DMA_STOP:
+    stm32_dmastop(chan->dma);
+    stm32_dac_modify_cr(chan,DAC_CR_DMAEN,0);
+    break;
+
+  case DACIOC_DMA_GETPTR:
+    if (0 == arg) {
+      return -EINVAL;
+    }
+    *(uint32_t*)arg = &chan->dmabuffer;
+    break;
+
+#endif
+
+  default:
+    break;
+
+  }
+
+  return OK;
 }
 
 /****************************************************************************

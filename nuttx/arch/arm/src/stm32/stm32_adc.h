@@ -108,7 +108,7 @@
 #  undef CONFIG_STM32_TIM5_ADC
 #  undef CONFIG_STM32_TIM5_ADC1
 #  undef CONFIG_STM32_TIM5_ADC2
-#  undef CONFIG_STM32_TIM5_ADC3
+//#  undef CONFIG_STM32_TIM5_ADC3
 #  undef CONFIG_STM32_TIM8_ADC
 #  undef CONFIG_STM32_TIM8_ADC1
 #  undef CONFIG_STM32_TIM8_ADC2
@@ -167,11 +167,21 @@
 #if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
 
 /* DMA support is not yet implemented for this driver */
-
-#ifdef CONFIG_ADC_DMA
-#  warning "DMA is not supported by the current driver"
+#if 0
+#    ifdef CONFIG_ADC_DMA
+#      warning "DMA is not supported by the current driver"
+#    endif
+#else
+#    if defined(CONFIG_ADC1_DMA) || defined(CONFIG_ADC3_DMA)
+#        define CONFIG_ADC_DMA
+#    endif
+#    ifdef CONFIG_ADC_DMA
+#        define ADCIOC_DMA_SETUP   _ANIOC(0xF0)
+#        define ADCIOC_DMA_START   _ANIOC(0xF1)
+#        define ADCIOC_DMA_STOP    _ANIOC(0xF2)
+#        define ADCIOC_DMA_GETPTR  _ANIOC(0xF3)
+#    endif 
 #endif
-
 /* Timer configuration:  If a timer trigger is specified, then get information
  * about the timer.
  */
@@ -508,7 +518,8 @@
 #  endif
 #elif defined(CONFIG_STM32_TIM3_ADC3)
 #  if CONFIG_STM32_ADC3_TIMTRIG == 0
-#    define ADC3_EXTSEL_VALUE ADC_CR2_EXTSEL_T3CC1
+//#    define ADC3_EXTSEL_VALUE ADC_CR2_EXTSEL_T3CC1
+#    define ADC3_EXTSEL_VALUE  ADC_CR2_EXTSEL_T1CC1  //T3CC1
 #  elif CONFIG_STM32_ADC3_TIMTRIG == 1
 #    define ADC3_EXTSEL_VALUE ADC_CR2_EXTSEL_T3CC2
 #  elif CONFIG_STM32_ADC3_TIMTRIG == 2
@@ -536,7 +547,7 @@
 #  endif
 #elif defined(CONFIG_STM32_TIM5_ADC3)
 #  if CONFIG_STM32_ADC3_TIMTRIG == 0
-#    define ADC3_EXTSEL_VALUE ADC_CR2_EXTSEL_T5CC1
+#    define ADC3_EXTSEL_VALUE ADC3_CR2_EXTSEL_T5CC1
 #  elif CONFIG_STM32_ADC3_TIMTRIG == 1
 #    define ADC3_EXTSEL_VALUE ADC_CR2_EXTSEL_T5CC2
 #  elif CONFIG_STM32_ADC3_TIMTRIG == 2

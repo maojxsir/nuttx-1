@@ -615,6 +615,67 @@ config STM32_DFU
 		Configure and position code for use with the STMicro DFU bootloader.  Do
 		not select this option if you will load code using JTAG/SWM.
 
+menu ADC_WATCHDOG
+
+config ADC1_WATCHDOG
+    bool "Enable ADC1 WatchDog"
+    default n
+    depends on STM32_ADC1
+config ADC1_WDG_HIGH
+    int "ADC1 WatchDog High Level"
+    default 4095
+    depends on ADC1_WATCHDOG
+config ADC1_WDG_LOW
+    int "ADC1 WatchDog Low Level"
+    default 0
+    depends on ADC1_WATCHDOG
+
+config ADC2_WATCHDOG
+    bool "Enable ADC2 WatchDog"
+    default n
+    depends on STM32_ADC2
+config ADC2_WDG_HIGH
+    int "ADC2 WatchDog High Level"
+    default 4095
+    depends on ADC2_WATCHDOG
+config ADC2_WDG_LOW
+    int "ADC2 WatchDog Low Level"
+    default 0
+    depends on ADC2_WATCHDOG
+
+config ADC3_WATCHDOG
+    bool "Enable ADC3 WatchDog"
+    default n
+    depends on STM32_ADC3
+config ADC3_WDG_HIGH
+    int "ADC3 WatchDog High Level"
+    default 4095
+    depends on ADC3_WATCHDOG
+config ADC3_WDG_LOW
+    int "ADC3 WatchDog Low Level"
+    default 0
+    depends on ADC3_WATCHDOG    
+
+endmenu
+
+config ADC1_DMA
+    bool "ADC1 DMA support"
+    default n
+    depends on STM32_DMA1 && STM32_ADC1
+config ADC1_DMA_SIZE
+    int "ADC1 DMA Buffer size"
+    default 2000
+    depends on ADC1_DMA
+
+config ADC3_DMA
+    bool "ADC3 DMA support"
+    default n
+    depends on STM32_DMA2 && STM32_ADC3
+config ADC3_DMA_SIZE
+    int "ADC3 DMA Buffer Size"
+    default 2000
+    depends on ADC3_DMA
+
 menu "STM32 Peripheral Support"
 
 config STM32_HAVE_USBDEV

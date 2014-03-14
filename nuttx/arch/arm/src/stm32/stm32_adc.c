@@ -62,6 +62,7 @@
 #include "chip.h"
 #include "stm32.h"
 #include "stm32_adc.h"
+#include "stm32_dma.h"
 
 /* ADC "upper half" support must be enabled */
 
@@ -97,13 +98,21 @@
  * not enabled, then only a single channel can be sampled.  Otherwise,
  * data overruns would occur.
  */
-
-#ifdef CONFIG_ADC_DMA
-#  define ADC_MAX_SAMPLES 16
+#if 0
+#    ifdef CONFIG_ADC_DMA
+#        define ADC_MAX_SAMPLES 16
+#    else
+#        define ADC_MAX_SAMPLES 1
+#    endif
 #else
 #  define ADC_MAX_SAMPLES 1
 #endif
 
+#if defined(CONFIG_ADC1_WATCHDOG) || defined(CONFIG_ADC2_WATCHDOG) || \
+    defined(CONFIG_ADC3_WATCHDOG)
+
+#    define CONFIG_ADC_WATCHDOG  1
+#endif
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -128,7 +137,27 @@ struct stm32_dev_s
   uint32_t freq;      /* The desired frequency of conversions */
 #endif
   uint8_t  chanlist[ADC_MAX_SAMPLES];
+#ifdef CONFIG_ADC_DMA
+  bool       dma_enable;
+  uint32_t   paddr;      /* peripheral address for dma */
+  uint16_t   dmachan;    /* DMA channel needed by this DAC */
+  DMA_HANDLE dma;        /* Allocated DMA channel */
+  uint16_t  *dmabuff;
+  size_t     dmasize;
+#endif
+#ifdef CONFIG_ADC_WATCHDOG
+  bool       watchdog_enable;
+  uint32_t   wdg_lowlevel;
+  uint32_t   wdg_highlevel;
+#endif
 };
+
+#ifdef CONFIG_ADC1_DMA
+static uint16_t g_adc1_dmabuff[CONFIG_ADC1_DMA_SIZE];
+#endif
+#ifdef CONFIG_ADC3_DMA
+static uint16_t g_adc3_dmabuff[CONFIG_ADC3_DMA_SIZE];
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -212,6 +241,22 @@ static struct stm32_dev_s g_adcpriv1 =
   .pclck       = ADC1_TIMER_PCLK_FREQUENCY,
   .freq        = CONFIG_STM32_ADC1_SAMPLE_FREQUENCY,
 #endif
+#ifdef CONFIG_ADC_DMA
+#  ifdef CONFIG_ADC1_DMA
+  .dma_enable  = true,
+  .paddr       = STM32_ADC1_DR,
+  .dmachan     = STM32_DMA1_CHAN1,
+  .dmabuff     = (uint16_t*)&g_adc1_dmabuff,
+  .dmasize     = CONFIG_ADC1_DMA_SIZE,
+#  else
+  .dma_enable  = false,
+#  endif
+#endif
+#ifdef CONFIG_ADC1_WATCHDOG
+  .watchdog_enable = true,
+  .wdg_highlevel   = CONFIG_ADC1_WDG_HIGH,
+  .wdg_lowlevel    = CONFIG_ADC1_WDG_LOW,
+#endif
 };
 
 static struct adc_dev_s g_adcdev1 =
@@ -242,6 +287,11 @@ static struct stm32_dev_s g_adcpriv2 =
   .pclck       = ADC2_TIMER_PCLK_FREQUENCY,
   .freq        = CONFIG_STM32_ADC2_SAMPLE_FREQUENCY,
 #endif
+#ifdef CONFIG_ADC2_WATCHDOG
+  .watchdog_enable = true,
+  .wdg_highlevel   = CONFIG_ADC2_WDG_HIGH,
+  .wdg_lowlevel    = CONFIG_ADC2_WDG_LOW,
+#endif
 };
 
 static struct adc_dev_s g_adcdev2 =
@@ -271,6 +321,22 @@ static struct stm32_dev_s g_adcpriv3 =
   .extsel      = ADC3_EXTSEL_VALUE,
   .pclck       = ADC3_TIMER_PCLK_FREQUENCY,
   .freq        = CONFIG_STM32_ADC3_SAMPLE_FREQUENCY,
+#endif
+#ifdef CONFIG_ADC_DMA
+#  ifdef CONFIG_ADC3_DMA
+  .dma_enable  = true,
+  .paddr       = STM32_ADC3_DR,
+  .dmachan     = STM32_DMA2_CHAN5,
+  .dmabuff     = &g_adc3_dmabuff,
+  .dmasize     = CONFIG_ADC3_DMA_SIZE,
+#  else
+  .dma_enable  = false,
+#  endif
+#endif
+#ifdef CONFIG_ADC3_WATCHDOG
+  .watchdog_enable = true,
+  .wdg_highlevel   = CONFIG_ADC3_WDG_HIGH,
+  .wdg_lowlevel    = CONFIG_ADC3_WDG_LOW,
 #endif
 };
 
@@ -991,13 +1057,16 @@ static void adc_reset(FAR struct adc_dev_s *dev)
 
   /* Initialize the ADC data structures */
 
+#ifdef CONFIG_ADC_WATCHDOG
   /* Initialize the watchdog high threshold register */
-
-  adc_putreg(priv, STM32_ADC_HTR_OFFSET, 0x00000fff);
+  if (priv->watchdog_enable) {
+    adc_putreg(priv, STM32_ADC_HTR_OFFSET, (priv->wdg_highlevel)&0xFFF);
 
   /* Initialize the watchdog low threshold register */
 
-  adc_putreg(priv, STM32_ADC_LTR_OFFSET, 0x00000000);
+    adc_putreg(priv, STM32_ADC_LTR_OFFSET, (priv->wdg_lowlevel)&0xFFF);
+  }
+#endif
 
   /* Initialize the same sample time for each ADC 55.5 cycles
    *
@@ -1026,14 +1095,19 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   regval |= ADC_CR1_IND;
 #endif
 
+#ifdef CONFIG_ADC_WATCHDOG
   /* Initialize the Analog watchdog enable */
 
   regval |= ADC_CR1_AWDEN;
   regval |= (priv->chanlist[0] << ADC_CR1_AWDCH_SHIFT);
-
+#endif
   /* Enable interrupt flags */
-
-  regval |= ADC_CR1_ALLINTS;
+#ifdef CONFIG_ADC_DMA
+  if (!priv->dma_enable) 
+#endif
+  {
+    regval |= ADC_CR1_ALLINTS;
+  }
 
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 
@@ -1064,6 +1138,12 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   /* External trigger enable for regular channels */
 
   regval |= ADC_CR2_EXTEN_RISING;
+#endif
+
+#ifdef CONFIG_ADC_DMA
+  if (priv->dma_enable) {
+    regval |= ADC_CR2_DMA;
+  }
 #endif
 
   adc_putreg(priv, STM32_ADC_CR2_OFFSET, regval);
@@ -1170,19 +1250,24 @@ static int adc_setup(FAR struct adc_dev_s *dev)
   int ret;
 
   /* Attach the ADC interrupt */
-
-  ret = irq_attach(priv->irq, priv->isr);
-  if (ret == OK)
-    {
-      /* Make sure that the ADC device is in the powered up, reset state */
+#ifdef CONFIG_ADC_DMA
+  if (priv->dma_enable == false) 
+#endif
+  {
+    avdbg("intr:%d adc_setup\n",priv->intf);
+    ret = irq_attach(priv->irq, priv->isr);
+    if (ret == OK)
+      {
+        /* Make sure that the ADC device is in the powered up, reset state */
 
       adc_reset(dev);
 
       /* Enable the ADC interrupt */
 
-      avdbg("Enable the ADC interrupt: irq=%d\n", priv->irq);
-      up_enable_irq(priv->irq);
-    }
+        avdbg("Enable the ADC interrupt: irq=%d\n", priv->irq);
+        up_enable_irq(priv->irq);
+      }
+  }
 
   return ret;
 }
@@ -1205,9 +1290,13 @@ static void adc_shutdown(FAR struct adc_dev_s *dev)
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
 
   /* Disable ADC interrupts and detach the ADC interrupt handler */
-
-  up_disable_irq(priv->irq);
-  irq_detach(priv->irq);
+#ifdef CONFIG_ADC_DMA
+  if (priv->dma_enable == false)
+#endif
+  {
+    up_disable_irq(priv->irq);
+    irq_detach(priv->irq);
+  }
 
   /* Disable and reset the ADC module */
 
@@ -1231,7 +1320,11 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev->ad_priv;
   uint32_t regval;
 
-  avdbg("intf: %d enable: %d\n", priv->intf, enable);
+#ifdef CONFIG_ADC_DMA
+  if (priv->dma_enable == false)
+#endif
+  {
+    avdbg("intf: %d enable: %d\n", priv->intf, enable);
 
   regval = adc_getreg(priv, STM32_ADC_CR1_OFFSET);
   if (enable)
@@ -1244,9 +1337,35 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
     {
       /* Disable all ADC interrupts */
 
-      regval &= ~ADC_CR1_ALLINTS;
-    }
-  adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
+        regval &= ~ADC_CR1_ALLINTS;
+      }
+    adc_putreg(priv, STM32_ADC_CR1_OFFSET, regval);
+  }
+#ifdef CONFIG_ADC_DMA
+  else {
+    avdbg("intf:%d using DMA,do not enable interrupt\n",priv->intf);
+  }
+#endif
+}
+
+void adc_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+#if 0
+  struct stm32_dev_s *priv = (struct stm32_dev_s*)(((struct adc_dev_s*)arg)->ad_priv);
+
+  if (status & DMA_STATUS_HTIF) {
+    // report adc data to pc
+    cf_report_rawdata_async(priv->dmabuff,priv->dmasize / 2);
+
+  } else if (status & DMA_STATUS_TCIF) {
+    cf_report_rawdata_async(priv->dambuff+(priv->dmasize/2),priv->dmasize/2);
+  } else {
+    printf("adc_dmacallback: adc dma transfer error\n");
+  }
+
+  return;
+#endif
+  
 }
 
 /****************************************************************************
@@ -1263,7 +1382,58 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
 
 static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 {
-  return -ENOTTY;
+    FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s*)dev->ad_priv;
+    uint32_t ccr = 0;
+
+    if (dev == NULL || priv == NULL) {
+        avdbg("adc_ioctl:invalid parameters\n");
+        return -EINVAL;
+    }
+
+    switch (cmd) {
+        case ANIOC_TRIGGER:
+          break;
+#ifdef CONFIG_ADC_DMA
+        case ADCIOC_DMA_SETUP:
+          // config dma
+          ccr = DMA_CCR_MSIZE_16BITS | /* Memory size */
+                         DMA_CCR_PSIZE_16BITS | /* Peripheral size */
+                         DMA_CCR_MINC |         /* Memory increment mode */
+                         DMA_CCR_CIRC ;         /* Circular buffer */
+          
+          priv->dma = stm32_dmachannel(priv->dmachan);
+          if (!priv->dma) {
+            avdbg("intf:%d allocate dma channel failed\n",priv->intf);
+            return -EBUSY;
+          }
+          stm32_dmasetup(priv->dma,priv->paddr,priv->dmabuff,priv->dmasize,ccr);
+          break;
+
+        case ADCIOC_DMA_START:
+          adc_enable(priv,false);
+          stm32_dmastart(priv->dma,adc_dmacallback,dev,true);
+          adc_enable(priv,true);
+          break;
+
+        case ADCIOC_DMA_STOP:
+          if (priv->dma) {
+            adc_enable(priv,false);
+            stm32_dmastop(priv->dma);
+          }
+          break;
+          
+        case ADCIOC_DMA_GETPTR:
+          if (0 == arg) {
+            return -EINVAL;
+          }
+          *(uint32_t*)arg = priv->dmabuff;
+          break;
+#endif
+        default:
+          break;
+    }
+
+  return OK;
 }
 
 /****************************************************************************
