@@ -312,7 +312,14 @@
 #    define ADC_CR2_EXTSEL_T4CC4    (5 << ADC_CR2_EXTSEL_SHIFT) /* 101: Timer 4 CC4 event */
 #    define ADC_CR2_EXTSEL_EXTI11   (6 << ADC_CR2_EXTSEL_SHIFT) /* 110: EXTI line11 */
 #    define ADC_CR2_EXTSEL_SWSTART  (7 << ADC_CR2_EXTSEL_SHIFT) /* 111: SWSTART */
-
+#    define ADC3_CR2_EXTSEL_T3CC1   (0 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T2CC3   (1 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T1CC3   (2 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T8CC1   (3 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T8TRGO  (4 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T5CC1   (5 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_T5CC3   (6 << ADC_CR2_EXTSEL_SHIFT)
+#    define ADC3_CR2_EXTSEL_SWSTART (7 << ADC_CR2_EXTSEL_SHIFT)
 #  define ADC_CR2_EXTTRIG           (1 << 20) /* Bit 20: External Trigger Conversion mode for regular channels */
 #  define ADC_CR2_JSWSTART          (1 << 21) /* Bit 21: Start Conversion of injected channels */
 #  define ADC_CR2_SWSTART           (1 << 22) /* Bit 22: Start Conversion of regular channels */

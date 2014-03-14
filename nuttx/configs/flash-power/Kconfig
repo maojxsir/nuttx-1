@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_CF_POWER
-comment "ChunFeng Power Configuration"
+if ARCH_BOARD_FLASH_POWER
+comment "Flash Power Configuration"
 endif
 
