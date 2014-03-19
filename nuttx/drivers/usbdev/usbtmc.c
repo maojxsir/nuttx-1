@@ -1275,7 +1275,7 @@ static void usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
 static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
                          FAR struct usbdev_s *dev)
 {
-    FAR struct usbtmc_dev_s *priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    FAR struct usbtmc_dev_s *priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     FAR struct USBTMC_req_s *reqcontainer;
     irqstate_t flags;
     uint16_t reqlen;
@@ -1439,7 +1439,7 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
                             FAR struct usbdev_s *dev)
 {
     FAR struct usbtmc_dev_s *priv;
-    FAR struct USBTMC_req_s *reqcontainer;
+    FAR struct usbtmc_req_s *reqcontainer;
     irqstate_t flags;
     int i;
     
@@ -1455,7 +1455,7 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
     
     /* Extract reference to private data */
     
-    priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     
     #ifdef CONFIG_DEBUG
     if (!priv)
@@ -1534,7 +1534,7 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
         DEBUGASSERT(priv->nwrq == CONFIG_USBTMC_NWRREQS);
         while (!sq_empty(&priv->reqlist))
         {
-            reqcontainer = (struct USBTMC_req_s *)sq_remfirst(&priv->reqlist);
+            reqcontainer = (struct usbtmc_req_s *)sq_remfirst(&priv->reqlist);
             if (reqcontainer->req != NULL)
             {
                 usbclass_freereq(priv->epbulkin, reqcontainer->req);
@@ -1583,7 +1583,7 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
     /* Extract reference to private data */
     
     usbtrace(TRACE_CLASSSETUP, ctrl->req);
-    priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     
     #ifdef CONFIG_DEBUG
     if (!priv || !priv->ctrlreq)
@@ -1666,70 +1666,70 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                 }
                 break;
                 
-                        case USB_REQ_SETCONFIGURATION:
-                        {
-                            if (ctrl->type == 0)
-                            {
-                                ret = usbclass_setconfig(priv, value);
-                            }
-                        }
-                        break;
-                        
-                        case USB_REQ_GETCONFIGURATION:
-                        {
-                            if (ctrl->type == USB_DIR_IN)
-                            {
-                                *(uint8_t*)ctrlreq->buf = priv->config;
-                                ret = 1;
-                            }
-                        }
-                        break;
-                        
-                        case USB_REQ_SETINTERFACE:
-                        {
-                            if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE)
-                            {
-                                if (priv->config == USBTMC_CONFIGID &&
-                                    index == USBTMC_INTERFACEID &&
-                                    value == USBTMC_ALTINTERFACEID)
-                                {
-                                    usbclass_resetconfig(priv);
-                                    usbclass_setconfig(priv, priv->config);
-                                    ret = 0;
-                                }
-                            }
-                        }
-                        break;
-                        
-                        case USB_REQ_GETINTERFACE:
-                        {
-                            if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
-                                priv->config == USBTMC_CONFIGIDNONE)
-                            {
-                                if (index != USBTMC_INTERFACEID)
-                                {
-                                    ret = -EDOM;
-                                }
-                                else
-                                {
-                                    *(uint8_t*) ctrlreq->buf = USBTMC_ALTINTERFACEID;
-                                    ret = 1;
-                                }
-                            }
-                        }
-                        break;
-                        
-                        default:
-                            usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
-                            break;
+                case USB_REQ_SETCONFIGURATION:
+                {
+                  if (ctrl->type == 0)
+                  {
+                    ret = usbclass_setconfig(priv, value);
+                  }
+                }
+                break;
+
+                case USB_REQ_GETCONFIGURATION:
+                {
+                  if (ctrl->type == USB_DIR_IN)
+                  {
+                    *(uint8_t*)ctrlreq->buf = priv->config;
+                    ret = 1;
+                  }
+                }
+                break;
+
+                case USB_REQ_SETINTERFACE:
+                {
+                  if (ctrl->type == USB_REQ_RECIPIENT_INTERFACE)
+                  {
+                    if (priv->config == USBTMC_CONFIGID &&
+                      index == USBTMC_INTERFACEID &&
+                      value == USBTMC_ALTINTERFACEID)
+                    {
+                      usbclass_resetconfig(priv);
+                      usbclass_setconfig(priv, priv->config);
+                      ret = 0;
+                    }
+                  }
+                }
+                break;
+
+                case USB_REQ_GETINTERFACE:
+                {
+                  if (ctrl->type == (USB_DIR_IN|USB_REQ_RECIPIENT_INTERFACE) &&
+                    priv->config == USBTMC_CONFIGIDNONE)
+                  {
+                    if (index != USBTMC_INTERFACEID)
+                    {
+                      ret = -EDOM;
+                    }
+                    else
+                    {
+                      *(uint8_t*) ctrlreq->buf = USBTMC_ALTINTERFACEID;
+                      ret = 1;
+                    }
+                  }
+                }
+                break;
+
+                default:
+                usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+                break;
+              }
             }
-        }
-        break;
+            break;
         
         /***********************************************************************
          * USBTMC Vendor-Specific Requests
          ***********************************************************************/
-        
+#if 0        //TODO ADD USBTMC Logic
         case USBTMC_CONTROL_TYPE:
         {
             if ((ctrl->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_INTERFACE)
@@ -1766,33 +1766,33 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
         }
         break;
         
-                    case USBTMC_RWREQUEST_TYPE:
-                    {
-                        if ((ctrl->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
-                        {
-                            if (ctrl->req == USBTMC_RWREQUEST)
-                            {
-                                if ((ctrl->type & USB_DIR_IN) != 0)
-                                {
-                                    *(uint32_t*)ctrlreq->buf = 0xdeadbeef;
-                                    ret = 4;
-                                }
-                                else
-                                {
-                                    ret = 0;
-                                }
-                            }
-                            else
-                            {
-                                usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-                            }
-                        }
-                    }
-                    break;
-                    
-                    default:
-                        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
-                        break;
+        case USBTMC_RWREQUEST_TYPE:
+          {
+            if ((ctrl->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
+            {
+              if (ctrl->req == USBTMC_RWREQUEST)
+              {
+                if ((ctrl->type & USB_DIR_IN) != 0)
+                {
+                  *(uint32_t*)ctrlreq->buf = 0xdeadbeef;
+                  ret = 4;
+                }
+                else
+                {
+                  ret = 0;
+                }
+              }
+              else
+              {
+                  usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
+              }
+            }
+          }
+        break;
+#endif                    
+        default:
+          usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
+          break;
     }
     
     /* Respond to the setup command if data was returned.  On an error return
@@ -1843,7 +1843,7 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
     
     /* Extract reference to private data */
     
-    priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     
     #ifdef CONFIG_DEBUG
     if (!priv)
@@ -1858,9 +1858,6 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
      */
     
     flags = irqsave();
-    #ifdef 0
-    uart_connected(&priv->serdev, false);
-    #endif
     
     /* Reset the configuration */
     
@@ -1905,7 +1902,7 @@ static void usbclass_suspend(FAR struct usbdevclass_driver_s *driver,
     
     /* Extract reference to private data */
     
-    priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     
     /* And let the "upper half" driver now that we are suspended */
     
@@ -1939,7 +1936,7 @@ static void usbclass_resume(FAR struct usbdevclass_driver_s *driver,
     
     /* Extract reference to private data */
     
-    priv = ((FAR struct USBTMC_driver_s*)driver)->dev;
+    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
     
     /* Are we still configured? */
     
@@ -1952,384 +1949,3 @@ static void usbclass_resume(FAR struct usbdevclass_driver_s *driver,
 }
 #endif
 
-/****************************************************************************
- * Serial Device Methods
- ****************************************************************************/
-
-/****************************************************************************
- * Name: usbTMC_setup
- *
- * Description:
- *   This method is called the first time that the serial port is opened.
- *
- ****************************************************************************/
-
-static int usbTMC_setup(FAR struct uart_dev_s *dev)
-{
-    FAR struct usbtmc_dev_s *priv;
-    
-    usbtrace(USBTMC_CLASSAPI_SETUP, 0);
-    
-    /* Sanity check */
-    
-    #if CONFIG_DEBUG
-    if (!dev || !dev->priv)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return -EIO;
-    }
-    #endif
-    
-    /* Extract reference to private data */
-    
-    priv = (FAR struct usbtmc_dev_s*)dev->priv;
-    
-    /* Check if we have been configured */
-    
-    if (priv->config == USBTMC_CONFIGIDNONE)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_SETUPNOTCONNECTED), 0);
-        return -ENOTCONN;
-    }
-    
-    return OK;
-}
-
-/****************************************************************************
- * Name: usbTMC_shutdown
- *
- * Description:
- *   This method is called when the serial port is closed.  This operation
- *   is very simple for the USB serial backend because the serial driver
- *   has already assured that the TX data has full drained -- it calls
- *   usbTMC_txempty() until that function returns true before calling this
- *   function.
- *
- ****************************************************************************/
-
-static void usbTMC_shutdown(FAR struct uart_dev_s *dev)
-{
-    usbtrace(USBTMC_CLASSAPI_SHUTDOWN, 0);
-    
-    /* Sanity check */
-    
-    #if CONFIG_DEBUG
-    if (!dev || !dev->priv)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-    }
-    #endif
-}
-
-/****************************************************************************
- * Name: usbTMC_attach
- *
- * Description:
- *   Does not apply to the USB serial class device
- *
- ****************************************************************************/
-
-static int usbTMC_attach(FAR struct uart_dev_s *dev)
-{
-    usbtrace(USBTMC_CLASSAPI_ATTACH, 0);
-    return OK;
-}
-
-/****************************************************************************
- * Name: usbTMC_detach
- *
- * Description:
- *   Does not apply to the USB serial class device
- *
- ****************************************************************************/
-
-static void usbTMC_detach(FAR struct uart_dev_s *dev)
-{
-    usbtrace(USBTMC_CLASSAPI_DETACH, 0);
-}
-
-/****************************************************************************
- * Name: usbTMC_rxint
- *
- * Description:
- *   Called by the serial driver to enable or disable RX interrupts.  We, of
- *   course, have no RX interrupts but must behave consistently.  This method
- *   is called under the conditions:
- *
- *   1. With enable==true when the port is opened (just after usbTMC_setup
- *      and usbTMC_attach are called called)
- *   2. With enable==false while transferring data from the RX buffer
- *   2. With enable==true while waiting for more incoming data
- *   3. With enable==false when the port is closed (just before usbTMC_detach
- *      and usbTMC_shutdown are called).
- *
- ****************************************************************************/
-
-static void usbTMC_rxint(FAR struct uart_dev_s *dev, bool enable)
-{
-    FAR struct usbtmc_dev_s *priv;
-    FAR uart_dev_t *serdev;
-    irqstate_t flags;
-    
-    usbtrace(USBTMC_CLASSAPI_RXINT, (uint16_t)enable);
-    
-    /* Sanity check */
-    
-    #if CONFIG_DEBUG
-    if (!dev || !dev->priv)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return;
-    }
-    #endif
-    
-    /* Extract reference to private data */
-    
-    priv   = (FAR struct usbtmc_dev_s*)dev->priv;
-    serdev = &priv->serdev;
-    
-    /* We need exclusive access to the RX buffer and private structure
-     * in the following.
-     */
-    
-    flags = irqsave();
-    if (enable)
-    {
-        /* RX "interrupts" are enabled.  Is this a transition from disabled
-         * to enabled state?
-         */
-        
-        if (!priv->rxenabled)
-        {
-            /* Yes.  During the time that RX interrupts are disabled, the
-             * the serial driver will be extracting data from the circular
-             * buffer and modifying recv.tail.  During this time, we
-             * should avoid modifying recv.head; When interrupts are restored,
-             * we can update the head pointer for all of the data that we
-             * put into cicular buffer while "interrupts" were disabled.
-             */
-            
-            if (priv->rxhead != serdev->recv.head)
-            {
-                serdev->recv.head = priv->rxhead;
-                
-                /* Yes... signal the availability of new data */
-                
-                uart_datareceived(serdev);
-            }
-            
-            /* RX "interrupts are no longer disabled */
-            
-            priv->rxenabled = true;
-        }
-    }
-    
-    /* RX "interrupts" are disabled.  Is this a transition from enabled
-     * to disabled state?
-     */
-    
-    else if (priv->rxenabled)
-    {
-        /* Yes.  During the time that RX interrupts are disabled, the
-         * the serial driver will be extracting data from the circular
-         * buffer and modifying recv.tail.  During this time, we
-         * should avoid modifying recv.head; When interrupts are disabled,
-         * we use a shadow index and continue adding data to the circular
-         * buffer.
-         */
-        
-        priv->rxhead    = serdev->recv.head;
-        priv->rxenabled = false;
-    }
-    irqrestore(flags);
-}
-
-/****************************************************************************
- * Name: usbTMC_txint
- *
- * Description:
- *   Called by the serial driver to enable or disable TX interrupts.  We, of
- *   course, have no TX interrupts but must behave consistently.  Initially,
- *   TX interrupts are disabled.  This method is called under the conditions:
- *
- *   1. With enable==false while transferring data into the TX buffer
- *   2. With enable==true when data may be taken from the buffer.
- *   3. With enable==false when the TX buffer is empty
- *
- ****************************************************************************/
-
-static void usbTMC_txint(FAR struct uart_dev_s *dev, bool enable)
-{
-    FAR struct usbtmc_dev_s *priv;
-    
-    usbtrace(USBTMC_CLASSAPI_TXINT, (uint16_t)enable);
-    
-    /* Sanity checks */
-    
-    #if CONFIG_DEBUG
-    if (!dev || !dev->priv)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return;
-    }
-    #endif
-    
-    /* Extract references to private data */
-    
-    priv = (FAR struct usbtmc_dev_s*)dev->priv;
-    
-    /* If the new state is enabled and if there is data in the XMIT buffer,
-     * send the next packet now.
-     */
-    
-    uvdbg("enable=%d head=%d tail=%d\n",
-          enable, priv->serdev.xmit.head, priv->serdev.xmit.tail);
-    
-    if (enable && priv->serdev.xmit.head != priv->serdev.xmit.tail)
-    {
-        usbclass_sndpacket(priv);
-    }
-}
-
-/****************************************************************************
- * Name: usbTMC_txempty
- *
- * Description:
- *   Return true when all data has been sent.  This is called from the
- *   serial driver when the driver is closed.  It will call this API
- *   periodically until it reports true.  NOTE that the serial driver takes all
- *   responsibility for flushing TX data through the hardware so we can be
- *   a bit sloppy about that.
- *
- ****************************************************************************/
-
-static bool usbTMC_txempty(FAR struct uart_dev_s *dev)
-{
-    FAR struct usbtmc_dev_s *priv = (FAR struct usbtmc_dev_s*)dev->priv;
-    
-    usbtrace(USBTMC_CLASSAPI_TXEMPTY, 0);
-    
-    #if CONFIG_DEBUG
-    if (!priv)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return true;
-    }
-    #endif
-    
-    /* When all of the allocated write requests have been returned to the
-     * reqlist, then there is no longer any TX data in flight.
-     */
-    
-    return priv->nwrq >= CONFIG_USBTMC_NWRREQS;
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: usbdev_serialinitialize
- *
- * Description:
- *   Register USB serial port (and USB serial console if so configured).
- *
- ****************************************************************************/
-
-int usbdev_serialinitialize(int minor)
-{
-    FAR struct USBTMC_alloc_s *alloc;
-    FAR struct usbtmc_dev_s *priv;
-    FAR struct USBTMC_driver_s *drvr;
-    char devname[16];
-    int ret;
-    
-    /* Allocate the structures needed */
-    
-    alloc = (FAR struct USBTMC_alloc_s*)kmalloc(sizeof(struct USBTMC_alloc_s));
-    if (!alloc)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_ALLOCDEVSTRUCT), 0);
-        return -ENOMEM;
-    }
-    
-    /* Convenience pointers into the allocated blob */
-    
-    priv = &alloc->dev;
-    drvr = &alloc->drvr;
-    
-    /* Initialize the USB serial driver structure */
-    
-    memset(priv, 0, sizeof(struct usbtmc_dev_s));
-    sq_init(&priv->reqlist);
-    
-    /* Fake line status */
-    
-    priv->linest[0] = (115200) & 0xff;       /* Baud=115200 */
-    priv->linest[1] = (115200 >> 8) & 0xff;
-    priv->linest[2] = (115200 >> 16) & 0xff;
-    priv->linest[3] = (115200 >> 24) & 0xff;
-    priv->linest[4] = 0;                     /* One stop bit */
-    priv->linest[5] = 0;                     /* No parity */
-    priv->linest[6] = 8;                     /*8 data bits */
-    
-    /* Initialize the serial driver sub-structure */
-    
-    #ifdef 0
-    priv->serdev.disconnected = true;
-    #endif
-    priv->serdev.recv.size    = CONFIG_USBTMC_RXBUFSIZE;
-    priv->serdev.recv.buffer  = priv->rxbuffer;
-    priv->serdev.xmit.size    = CONFIG_USBTMC_TXBUFSIZE;
-    priv->serdev.xmit.buffer  = priv->txbuffer;
-    priv->serdev.ops          = &g_uartops;
-    priv->serdev.priv         = priv;
-    
-    /* Initialize the USB class driver structure */
-    
-    #ifdef CONFIG_USBDEV_DUALSPEED
-    drvr->drvr.speed         = USB_SPEED_HIGH;
-    #else
-    drvr->drvr.speed         = USB_SPEED_FULL;
-    #endif
-    drvr->drvr.ops           = &g_driverops;
-    drvr->dev                = priv;
-    
-    /* Register the USB serial class driver */
-    
-    ret = usbdev_register(&drvr->drvr);
-    if (ret)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_DEVREGISTER), (uint16_t)-ret);
-        goto errout_with_alloc;
-    }
-    
-    /* Register the USB serial console */
-    
-    #ifdef CONFIG_USBTMC_CONSOLE
-    priv->serdev.isconsole = true;
-    ret = uart_register("/dev/console", &priv->serdev);
-    if (ret < 0)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_CONSOLEREGISTER), (uint16_t)-ret);
-        goto errout_with_class;
-    }
-    #endif
-    
-    /* Register the single port supported by this implementation */
-    
-    sprintf(devname, "/dev/ttyUSB%d", minor);
-    ret = uart_register(devname, &priv->serdev);
-    if (ret)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UARTREGISTER), (uint16_t)-ret);
-        goto errout_with_class;
-    }
-    return OK;
-    
-    errout_with_class:
-    usbdev_unregister(&drvr->drvr);
-    errout_with_alloc:
-    kfree(alloc);
-    return ret;
-}
