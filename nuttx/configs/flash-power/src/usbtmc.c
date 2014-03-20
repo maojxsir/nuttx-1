@@ -120,21 +120,19 @@
 #  define CONFIG_USBTMC_PRODUCTID 0x6868   
 #endif
 
-#ifndef CONFIG_USBTMC_VENDORSTR
-#  warning "No Vendor string specified"
-#  define CONFIG_USBTMC_VENDORSTR  "Gan0Ling'Studio"
-#endif
+static uint16_t str_vendor[] = {0x5c0f,0x7518,0x5de5,0x4f5c,0x5ba4};
+#define CONFIG_USBTMC_VENDORSTR  str_vendor
 
-#ifndef CONFIG_USBTMC_PRODUCTSTR
-#  warning "No Product string specified"
-#  define CONFIG_USBTMC_PRODUCTSTR "Xiaogan power instrument"
-#endif
+static uint16_t str_product[] = {0x5c0f,0x7518,0x7535,0x6e90};
+#define CONFIG_USBTMC_PRODUCTSTR str_product
 
+static uint16_t str_serial[] = {0x0000};
 #undef CONFIG_USBTMC_SERIALSTR
-#define CONFIG_USBTMC_SERIALSTR "0"
+#define CONFIG_USBTMC_SERIALSTR str_serial
 
+static uint16_t str_config[] = {0x6d4b,0x8bd5,0x6d4b,0x91cf,0x4eea,0x5668};
 #undef CONFIG_USBTMC_CONFIGSTR
-#define CONFIG_USBTMC_CONFIGSTR "FlashPower"
+#define CONFIG_USBTMC_CONFIGSTR str_config
 
 /* USB Controller */
 
@@ -181,7 +179,7 @@
 
 /* String language */
 
-#define USBTMC_STR_LANGUAGE        (0x0409) /* en-us */
+ #define USBTMC_STR_LANGUAGE        (0x0804)  /* chinese  */
 
 /* Descriptor strings */
 
@@ -246,8 +244,6 @@ struct usbtmc_dev_s
     uint8_t config;                     /* Configuration number */
     uint8_t nwrq;                       /* Number of queue write requests (in reqlist)*/
     uint8_t nrdq;                       /* Number of queue read requests (in epbulkout) */
-    bool    rxenabled;                  /* true: UART RX "interrupts" enabled */
-    uint8_t linest[7];                  /* Fake line status */
     int16_t rxhead;                     /* Working head; used when rx int disabled */
     
     FAR struct usbdev_ep_s  *epintin;   /* Interrupt IN endpoint structure */
@@ -834,14 +830,16 @@ static int usbclass_mkstrdesc(uint8_t id, struct usb_strdesc_s *strdesc)
      * conversion below will only handle 7-bit en-us ascii
      */
     //TODO, USE UTF16 chinese desc
+#if 0
     len = strlen(str);
     for (i = 0, ndata = 0; i < len; i++, ndata += 2)
     {
         strdesc->data[ndata]   = str[i];
         strdesc->data[ndata+1] = 0;
     }
+#endif
     
-    strdesc->len  = ndata+2;
+    strdesc->len  = sizeof(str);
     strdesc->type = USB_DESC_TYPE_STRING;
     return strdesc->len;
 }
@@ -1876,76 +1874,4 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
     DEV_CONNECT(dev);
 }
 
-/****************************************************************************
- * Name: usbclass_suspend
- *
- * Description:
- *   Handle the USB suspend event.
- *
- ****************************************************************************/
-
-#ifdef 0
-static void usbclass_suspend(FAR struct usbdevclass_driver_s *driver,
-                             FAR struct usbdev_s *dev)
-{
-    FAR struct usbtmc_dev_s *priv;
-    
-    usbtrace(TRACE_CLASSSUSPEND, 0);
-    
-    #ifdef CONFIG_DEBUG
-    if (!driver || !dev)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return;
-    }
-    #endif
-    
-    /* Extract reference to private data */
-    
-    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
-    
-    /* And let the "upper half" driver now that we are suspended */
-    
-    uart_connected(&priv->serdev, false);
-}
-#endif
-
-/****************************************************************************
- * Name: usbclass_resume
- *
- * Description:
- *   Handle the USB resume event.
- *
- ****************************************************************************/
-
-#ifdef 0
-static void usbclass_resume(FAR struct usbdevclass_driver_s *driver,
-                            FAR struct usbdev_s *dev)
-{
-    FAR struct usbtmc_dev_s *priv;
-    
-    usbtrace(TRACE_CLASSRESUME, 0);
-    
-    #ifdef CONFIG_DEBUG
-    if (!driver || !dev)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
-        return;
-    }
-    #endif
-    
-    /* Extract reference to private data */
-    
-    priv = ((FAR struct usbtmc_driver_s*)driver)->dev;
-    
-    /* Are we still configured? */
-    
-    if (priv->config != USBTMC_CONFIGIDNONE)
-    {
-        /* Yes.. let the "upper half" know that have resumed */
-        
-        uart_connected(&priv->serdev, true);
-    }
-}
-#endif
 
