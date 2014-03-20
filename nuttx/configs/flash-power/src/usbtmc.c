@@ -1727,67 +1727,7 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
         /***********************************************************************
          * USBTMC Vendor-Specific Requests
          ***********************************************************************/
-#if 0        //TODO ADD USBTMC Logic
-        case USBTMC_CONTROL_TYPE:
-        {
-            if ((ctrl->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_INTERFACE)
-            {
-                switch (ctrl->req)
-                {
-                    case USBTMC_SETLINEREQUEST:
-                    {
-                        memcpy(priv->linest, ctrlreq->buf, min(len, 7));
-                        ret = 0;
-                    }
-                    break;
-                    
-                    
-                    case USBTMC_GETLINEREQUEST:
-                    {
-                        memcpy(ctrlreq->buf, priv->linest, 7);
-                        ret = 7;
-                    }
-                    break;
-                    
-                    case USBTMC_SETCONTROLREQUEST:
-                    case USBTMC_BREAKREQUEST:
-                    {
-                        ret = 0;
-                    }
-                    break;
-                    
-                    default:
-                        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-                        break;
-                }
-            }
-        }
-        break;
-        
-        case USBTMC_RWREQUEST_TYPE:
-          {
-            if ((ctrl->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
-            {
-              if (ctrl->req == USBTMC_RWREQUEST)
-              {
-                if ((ctrl->type & USB_DIR_IN) != 0)
-                {
-                  *(uint32_t*)ctrlreq->buf = 0xdeadbeef;
-                  ret = 4;
-                }
-                else
-                {
-                  ret = 0;
-                }
-              }
-              else
-              {
-                  usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ), ctrl->type);
-              }
-            }
-          }
-        break;
-#endif                    
+                       
         default:
           usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
           break;
