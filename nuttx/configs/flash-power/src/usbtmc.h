@@ -120,7 +120,7 @@ struct usbtmc_intin_header {
     uint8_t bit2:1;
     uint8_t bit1:1;
     uint8_t bit0:1;
-  } bNotify;
+  } flag;
   uint8_t notify[0];
 };
 
