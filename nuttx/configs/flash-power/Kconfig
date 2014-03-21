@@ -5,5 +5,11 @@
 
 if ARCH_BOARD_FLASH_POWER
 comment "Flash Power Configuration"
+
+config GL_FLASHPOWER
+    bool "Flash Power macro"
+    default y
+
+
 endif
 

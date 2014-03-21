@@ -59,6 +59,8 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
+ #include "ficl.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -234,7 +236,15 @@ struct usbtmc_req_s
     FAR struct usbtmc_req_s *flink;     /* Implements a singly linked list */
     FAR struct usbdev_req_s *req;       /* The contained request */
 };
-
+struct usbtmc_fifo_s
+{
+  pthread_mutex_t mutex;                 /* Counting semaphore */
+  uint16_t      head;                     /* Index to the head [IN] index in the circular buffer */
+  //uint16_t      tail;                     /* Index to the tail [OUT] index in the circular buffer */
+  uint16_t      available
+                                         /* Circular buffer of CAN messages */
+  char buffer[CONFIG_USBTMC_BUFFSIZE];
+};
 /* This structure describes the internal state of the driver */
 
 struct usbtmc_dev_s
@@ -245,7 +255,12 @@ struct usbtmc_dev_s
     uint8_t nwrq;                       /* Number of queue write requests (in reqlist)*/
     uint8_t nrdq;                       /* Number of queue read requests (in epbulkout) */
     int16_t rxhead;                     /* Working head; used when rx int disabled */
-    
+    bool bTransferBegin;
+    uint32_t currTransSize;             /* Current Transfer Size*/
+    ficlVm *ficl_vm;                    /* Ficl Virtual Machine*/
+    ficlSystem *ficl_system;            /* Ficl */
+    sem_t sem;                          /* indicate decode thread to decode usbtmc message*/
+    pthread_t decodethread;
     FAR struct usbdev_ep_s  *epintin;   /* Interrupt IN endpoint structure */
     FAR struct usbdev_ep_s  *epbulkin;  /* Bulk IN endpoint structure */
     FAR struct usbdev_ep_s  *epbulkout; /* Bulk OUT endpoint structure */
@@ -260,10 +275,10 @@ struct usbtmc_dev_s
     struct usbtmc_req_s wrreqs[CONFIG_USBTMC_NWRREQS];
     struct usbtmc_req_s rdreqs[CONFIG_USBTMC_NWRREQS];
     
-    /* Serial I/O buffers */
+    /* I/O buffers */
     
-    char rxbuffer[CONFIG_USBTMC_RXBUFSIZE];
-    char txbuffer[CONFIG_USBTMC_TXBUFSIZE];
+    struct usbtmc_fifo_s rxbuffer;
+    struct usbtmc_fifo_s txbuffer;
 };
 
 /* The internal version of the class driver */
@@ -636,98 +651,30 @@ static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv)
 static inline int usbclass_recvpacket(FAR struct usbtmc_dev_s *priv,
                                       uint8_t *reqbuf, uint16_t reqlen)
 {
-#if 0
-    FAR uart_dev_t *serdev = &priv->serdev;
-    FAR struct uart_buffer_s *recv = &serdev->recv;
-    uint16_t currhead;
-    uint16_t nexthead;
-    uint16_t nbytes = 0;
-    
-    /* Get the next head index. During the time that RX interrupts are disabled, the
-     * the serial driver will be extracting data from the circular buffer and modifying
-     * recv.tail.  During this time, we should avoid modifying recv.head; Instead we will
-     * use a shadow copy of the index.  When interrupts are restored, the real recv.head
-     * will be updated with this indes.
-     */
-    
-    if (priv->rxenabled)
-    {
-        currhead = recv->head;
-    }
-    else
-    {
-        currhead = priv->rxhead;
-    }
-    
-    /* Pre-calculate the head index and check for wrap around.  We need to do this
-     * so that we can determine if the circular buffer will overrun BEFORE we
-     * overrun the buffer!
-     */
-    
-    nexthead = currhead + 1;
-    if (nexthead >= recv->size)
-    {
-        nexthead = 0;
-    }
-    
-    /* Then copy data into the RX buffer until either: (1) all of the data has been
-     * copied, or (2) the RX buffer is full.  NOTE:  If the RX buffer becomes full,
-     * then we have overrun the serial driver and data will be lost.
-     */
-    
-    while (nexthead != recv->tail && nbytes < reqlen)
-    {
-        /* Copy one byte to the head of the circular RX buffer */
-        
-        recv->buffer[currhead] = *reqbuf++;
-        
-        /* Update counts and indices */
-        
-        currhead = nexthead;
-        nbytes++;
-        
-        /* Increment the head index and check for wrap around */
-        
-        nexthead = currhead + 1;
-        if (nexthead >= recv->size)
-        {
-            nexthead = 0;
-        }
-    }
-    
-    /* Write back the head pointer using the shadow index if RX "interrupts"
-     * are disabled.
-     */
-    
-    if (priv->rxenabled)
-    {
-        recv->head = currhead;
-    }
-    else
-    {
-        priv->rxhead = currhead;
-    }
-    
-    /* If data was added to the incoming serial buffer, then wake up any
-     * threads is waiting for incoming data. If we are running in an interrupt
-     * handler, then the serial driver will not run until the interrupt handler
-     * returns.
-     */
-    
-    if (priv->rxenabled && nbytes > 0)
-    {
-        uart_datareceived(serdev);
-    }
-    
-    /* Return an error if the entire packet could not be transferred */
-    
-    if (nbytes < reqlen)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RXOVERRUN), 0);
-        return -ENOSPC;
-    }
-    return OK;
-#endif
+  int ret;
+  
+  if (req % 4) {
+    usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_ALIGN),EINVAL);
+    return -EINVAL;
+  }
+  //get rxbuffer lock
+  ret = pthread_mutex_lock(&priv->rxbuffer.mutex);
+  if (ret != OK) {
+    usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RECVMUTEXLOCK),ret);
+    return ret;
+  }
+
+  // copy usbtmc message bytes into rxbuffer
+  // check overrun
+  if (reqlen > priv->rxbuffer.available) {
+    usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RXOVERRUN),0);
+    pthread_mutex_unlock(&priv->rxbuffer.mutex);
+    return -USBTMC_TRACEERR_RXOVERRUN;
+  }
+
+  
+
+  pthread_mutex_unlock(&priv->rxbuffer.mutex);
 }
 
 /****************************************************************************
@@ -1278,7 +1225,8 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     irqstate_t flags;
     uint16_t reqlen;
     int ret;
-    int i;
+    int i,type;
+    pthread_mutexattr_t mattr;
     
     usbtrace(TRACE_CLASSBIND, 0);
     
@@ -1407,7 +1355,36 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
         irqrestore(flags);
     }
     
-    // TODO : ADD Setup ficl environment
+    priv->ficl_system = ficlSystemCreate(NULL);
+    ficlSystemCompileExtras(priv->ficl_system);
+    priv->ficl_vm = ficlSystemCreateVm(priv->ficl_system);
+
+    sem_init(&priv->sem,0,0);
+    //init pthread mutex for rxbuffer and txbuffer
+    pthread_mutexattr_init(&mattr);
+    ret = pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+    if (ret != OK) {
+      usbtrace(TRACE_CLASSBIND,ret);
+      goto errout;
+    }
+    ret = pthread_mutexattr_gettype(&mattr, &type);
+    if (ret != 0)
+    {
+      printf("ERROR pthread_mutexattr_gettype failed, ret=%d\n", ret);
+    }
+    if (type != PTHREAD_MUTEX_RECURSIVE)
+    {
+      printf("ERROR pthread_mutexattr_gettype return type=%d\n", type);
+    }
+    pthread_mutex_init(&priv->rxbuffer.mutex, &mattr);
+    pthread_mutex_init(&priv->txbuffer.mutex, &mattr);
+    // Create a pthread to do usbtmc messaged decode
+    ret = pthread_create(priv->decodethread,NULL,usbtmc_decode_thread,priv);
+    if (ret != OK) {
+      usbtrace(TRACE_CLASSBIND,errno);
+      ret = -errno;
+      goto errout;
+    }
 
     /* Report if we are selfpowered */
     
@@ -1420,7 +1397,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     DEV_CONNECT(dev);
     return OK;
     
-    errout:
+errout:
     usbclass_unbind(driver, dev);
     return ret;
 }
@@ -1543,10 +1520,11 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
         irqrestore(flags);
     }
     
-    /* Clear out all data in the circular buffer */
-    
-    priv->serdev.xmit.head = 0;
-    priv->serdev.xmit.tail = 0;
+    pthread_cancel(priv->decodethread);
+    pthread_mutex_destroy(&priv->rxbuffer.mutex);
+    pthread_mutex_destroy(&priv->txbuffer.mutex);
+    sem_destroy(&priv->sem);
+    // Whether need to clear all txbuffer and rxbuffer?
 }
 
 /****************************************************************************
@@ -1716,7 +1694,22 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                   }
                 }
                 break;
-
+                case USB_REQ_CLEARFEATURE:
+                /* Handle Clear Feature specified in usbtmc specs*/
+                {
+                  if(value == USB_FEATURE_ENDPOINTHALT && len == 0) {
+                    if (index == USBTMC_EPOUTBULK_ADDR) {
+                      /* The device, after receiving CLEAR_FEATURE request, must interpret 
+                      the first part of the next Bulk-OUT transaction as a new USBTMC Bulk-OUT Header*/
+                      // TODO add logic
+                    } else if (index == USBTMC_EPINBULK_ADDR) {
+                      /* The device, after receiving CLEAR_FEATURE request, msut not queue any bulk-in data 
+                      until it receives a USBTMC command message that expects a reponse*/
+                      //TODO add logic
+                    }
+                  }
+                }
+                break;
                 default:
                 usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
                 break;
@@ -1725,9 +1718,84 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
             break;
         
         /***********************************************************************
-         * USBTMC Vendor-Specific Requests
+         * USBTMC Class-Specific Requests
          ***********************************************************************/
-                       
+        case USB_REQ_TYPE_CLASS:
+        {
+          switch (ctrl->req) {
+            case INITIATE_ABORT_BULK_OUT:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_ENDPOINT ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case CHECK_ABORT_BULK_OUT_STATUS:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_ENDPOINT ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case INITIATE_ABORT_BULK_IN:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_ENDPOINT ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case CHECK_ABORT_BULK_IN_STATUS:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_ENDPOINT ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case INITIATE_CLEAR:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_INTERFACE ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_INTERFACE ) {
+                // TODO ADD Logic
+              }
+            }
+            case CHECK_CLEAR_STATUS:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_INTERFACE ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case GET_CAPABILITIES:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_INTERFACE ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            case INDICATIOR_PULSE:
+            {
+              if (ctrl->type & USB_REQ_RECIPIENT_MASK == USB_REQ_RECIPIENT_INTERFACE ) {
+                // TODO ADD Logic
+              }
+            }
+            break;
+
+            default:
+              usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ),ctrl->req);
+              break;
+          }
+        }                      
         default:
           usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
           break;
@@ -1814,4 +1882,7 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
     DEV_CONNECT(dev);
 }
 
-
+void *usbtmc_decode_thread(void *arg) 
+{
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+}

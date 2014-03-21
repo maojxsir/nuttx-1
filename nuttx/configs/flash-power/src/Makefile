@@ -35,7 +35,7 @@
 
 -include $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CFLAGS		+= -I$(TOPDIR)/sched -I$(APPDIR)/interpreters/ficl/ficl-4.1.0
 
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))

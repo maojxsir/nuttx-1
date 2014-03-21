@@ -1932,6 +1932,10 @@ static void stm32_ep0setup(struct stm32_usbdev_s *priv)
                 privep         = &priv->eplist[epno];
                 privep->halted = 0;
                 (void)stm32_epstall(&privep->ep, true);
+#ifdef CONFIG_GL_FLASHPOWER
+                /* dispatch CLEAR_FEATURE to usbtmc*/
+                stm32_dispatchrequest(priv);          
+#endif
               }
             else
               {

@@ -636,7 +636,7 @@ FICL_PLATFORM_EXTERN void *ficlRealloc(void *p, size_t size);
 #define FICL_VERSION    "4.1.0"
 
 #if !defined (FICL_PROMPT)
-#define FICL_PROMPT		"ok> "
+#define FICL_PROMPT		"XiaoGan#> "
 #endif
 
 /*

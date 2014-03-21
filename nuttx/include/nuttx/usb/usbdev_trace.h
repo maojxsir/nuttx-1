@@ -252,6 +252,55 @@
 #define USBCOMPOSITE_TRACEERR_CLASSOBJECT            0x004b
 #define USBCOMPOSITE_TRACEERR_DEVREGISTER            0x004c
 
+/*  USBTMC Class Event ******************************************************/
+#define USBTMC_TRACECLASSAPI_SETUP                   0x0030
+#define USBTMC_TRACECLASSAPI_SHUTDOWN                0x0031
+#define USBTMC_TRACECLASSAPI_ATTACH                  0x0032
+#define USBTMC_TRACECLASSAPI_DETACH                  0x0033
+#define USBTMC_TRACECLASSAPI_IOCTL                   0x0034
+#define USBTMC_TRACECLASSAPI_RECEIVE                 0x0035
+#define USBTMC_TRACECLASSAPI_RXINT                   0x0036
+#define USBTMC_TRACECLASSAPI_RXAVAILABLE             0x0037
+#define USBTMC_TRACECLASSAPI_SEND                    0x0038
+#define USBTMC_TRACECLASSAPI_TXINT                   0x0039
+#define USBTMC_TRACECLASSAPI_TXREADY                 0x0040
+#define USBTMC_TRACECLASSAPI_TXEMPTY                 0x0050
+#define USBTMC_TRACEERR_ALLOCCTRLREQ                 0x0051
+#define USBTMC_TRACEERR_ALLOCDEVSTRUCT               0x0052
+#define USBTMC_TRACEERR_ALREADYCLOSED                0x0053
+#define USBTMC_TRACEERR_ALREADYCONFIGURED            0x0054
+#define USBTMC_TRACEERR_CONFIGIDBAD                  0x0055
+#define USBTMC_TRACEERR_CONFIGNONE                   0x0056
+#define USBTMC_TRACEERR_RECVMUTEXLOCK                0x0057
+#define USBTMC_TRACEERR_DEVREGISTER                  0x0058
+#define USBTMC_TRACEERR_EPRESPQ                      0x0059
+#define USBTMC_TRACEERR_GETUNKNOWNDESC               0x005a
+#define USBTMC_TRACEERR_INVALIDARG                   0x005b
+#define USBTMC_TRACEERR_EP0NOTBOUND                  0x005c
+#define USBTMC_TRACEERR_EPBULKINALLOCFAIL            0x005d
+#define USBTMC_TRACEERR_EPBULKINCONFIGFAIL           0x005e
+#define USBTMC_TRACEERR_EPBULKOUTALLOCFAIL           0x005f
+#define USBTMC_TRACEERR_EPINTINALLOCFAIL             0x0060
+#define USBTMC_TRACEERR_EPINTINCONFIGFAIL            0x0061
+#define USBTMC_TRACEERR_EPBULKOUTCONFIGFAIL          0x0062
+#define USBTMC_TRACEERR_RDALLOCREQ                   0x0063
+#define USBTMC_TRACEERR_RDSHUTDOWN                   0x0064
+#define USBTMC_TRACEERR_RDSUBMIT                     0x0065
+#define USBTMC_TRACEERR_RDUNEXPECTED                 0x0066
+#define USBTMC_TRACEERR_REQRESULT                    0x0067
+#define USBTMC_TRACEERR_RXOVERRUN                    0x0068
+#define USBTMC_TRACEERR_SETUPNOTCONNECTED            0x0069
+#define USBTMC_TRACEERR_SUBMITFAIL                   0x006a
+#define USBTMC_TRACEERR_SENDMUTEXLOCK                0x006b
+#define USBTMC_TRACEERR_UARTUNREGISTER               0x006c
+#define USBTMC_TRACEERR_UNSUPPORTEDCTRLREQ           0x006d
+#define USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ          0x006e
+#define USBTMC_TRACEERR_UNSUPPORTEDSTDREQ            0x006f
+#define USBTMC_TRACEERR_UNSUPPORTEDTYPE              0x0070
+#define USBTMC_TRACEERR_WRALLOCREQ                   0x0071
+#define USBTMC_TRACEERR_WRSHUTDOWN                   0x0072
+#define USBTMC_TRACEERR_WRUNEXPECTED                 0x0073
+
 /* USB Storage driver class events ******************************************/
 
 /* State transitions */
