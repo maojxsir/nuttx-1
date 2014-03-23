@@ -167,6 +167,7 @@ int nsh_main(int argc, char *argv[])
 
   /* If the serial console front end is selected, then run it on this thread */
 
+  usbdev_usbtmcinitialize(0);
 #ifdef CONFIG_NSH_CONSOLE
   ret = nsh_consolemain(0, NULL);
 

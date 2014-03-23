@@ -34,13 +34,13 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
-
-CFLAGS += -I$(TOPDIR)/sched
+APPDIR = ~/work/nuttx-sfe/apps
+CFLAGS += -I$(TOPDIR)/sched -I $(APPDIR)/interpreters/ficl/ficl-4.1.0
 
 ASRCS = 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS = stm32_boot.c stm32_spi.c
+CSRCS = stm32_boot.c stm32_spi.c usbtmc.c
 
 ifeq ($(CONFIG_HAVE_CXX),y)
 CSRCS += stm32_cxxinitialize.c

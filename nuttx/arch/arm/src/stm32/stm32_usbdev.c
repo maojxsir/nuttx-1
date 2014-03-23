@@ -1576,7 +1576,7 @@ static void stm32_cancelrequests(struct stm32_ep_s *privep)
 static void stm32_dispatchrequest(struct stm32_usbdev_s *priv)
 {
   int ret;
-
+  printf("+++++EP0:Dispatch\n");
   usbtrace(TRACE_INTDECODE(STM32_TRACEINTID_DISPATCH), 0);
   if (priv && priv->driver)
     {
@@ -1584,8 +1584,10 @@ static void stm32_dispatchrequest(struct stm32_usbdev_s *priv)
 
       ret = CLASS_SETUP(priv->driver, &priv->usbdev, &priv->ctrl,
                         priv->ep0data, priv->ep0datlen);
+      printf("##@@\n");
       if (ret < 0)
         {
+          printf("!!!!\n");
           /* Stall on failure */
 
           usbtrace(TRACE_DEVERROR(STM32_TRACEERR_DISPATCHSTALL), 0);

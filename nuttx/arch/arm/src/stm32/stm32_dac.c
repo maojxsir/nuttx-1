@@ -347,9 +347,16 @@ struct stm32_chan_s
   DMA_HANDLE dma;        /* Allocated DMA channel */
   uint32_t   tbase;      /* Timer base address */
   uint32_t   tfrequency; /* Timer frequency */
-  uint16_t   dmabuffer[CONFIG_STM32_DAC_DMA_BUFFER_SIZE]; /* DMA transfer buffer */
+  uint8_t   *dmabuffer;  /* DMA transfer buffer */
 #endif
 };
+
+#ifdef CONFIG_STM32_DAC1_DMA
+uint8_t g_DAC1DMABuffer[CONFIG_STM32_DAC_DMA_BUFFER_SIZE];
+#endif
+#ifdef CONFIG_STM32_DAC2_DMA
+uint8_t g_DAC2DMABuffer[CONFIG_STM32_DAC_DMA_BUFFER_SIZE];
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -410,6 +417,7 @@ static struct stm32_chan_s g_dac1priv =
   .tsel       = DAC1_TSEL_VALUE,
   .tbase      = DAC1_TIMER_BASE,
   .tfrequency = CONFIG_STM32_DAC1_TIMER_FREQUENCY,
+  .dmabuffer  = &g_DAC1DMABuffer,
 #endif
 };
 
@@ -432,6 +440,7 @@ static struct stm32_chan_s g_dac2priv =
   .tsel       = DAC2_TSEL_VALUE,
   .tbase      = DAC2_TIMER_BASE,
   .tfrequency = CONFIG_STM32_DAC2_TIMER_FREQUENCY,
+  .dmabuffer  = &g_DAC2DMABuffer;
 #endif
 };
 
@@ -713,11 +722,11 @@ static int dac_send(FAR struct dac_dev_s *dev, FAR struct dac_msg_s *msg)
        */
 
       uint32_t ccr =
-          DMA_CCR_MSIZE_16BITS | /* Memory size */
-          DMA_CCR_PSIZE_16BITS | /* Peripheral size */
-          DMA_CCR_MINC |         /* Memory increment mode */
-          DMA_CCR_CIRC |         /* Circular buffer */
-          DMA_CCR_DIR;           /* Read from memory */
+          DMA_SCR_MSIZE_16BITS | /* Memory size */
+          DMA_SCR_PSIZE_16BITS | /* Peripheral size */
+          DMA_SCR_MINC |         /* Memory increment mode */
+          DMA_SCR_CIRC |         /* Circular buffer */
+          DMA_SCR_DIR_M2P;           /* Read from memory */
 
       stm32_dmasetup(chan->dma, chan->dro, (uint32_t)chan->dmabuffer,
                      CONFIG_STM32_DAC_DMA_BUFFER_SIZE, ccr);
@@ -796,11 +805,11 @@ static int  dac_ioctl(FAR struct dac_dev_s *dev, int cmd, unsigned long arg)
        */
 
       uint32_t ccr =
-          DMA_CCR_MSIZE_16BITS | /* Memory size */
-          DMA_CCR_PSIZE_16BITS | /* Peripheral size */
-          DMA_CCR_MINC |         /* Memory increment mode */
-          DMA_CCR_CIRC |         /* Circular buffer */
-          DMA_CCR_DIR;           /* Read from memory */
+          DMA_SCR_MSIZE_16BITS | /* Memory size */
+          DMA_SCR_PSIZE_16BITS | /* Peripheral size */
+          DMA_SCR_MINC |         /* Memory increment mode */
+          DMA_SCR_CIRC |         /* Circular buffer */
+          DMA_SCR_DIR_M2P;           /* Read from memory */
 
       stm32_dmasetup(chan->dma, chan->dro, (uint32_t)chan->dmabuffer,
                      CONFIG_STM32_DAC_DMA_BUFFER_SIZE, ccr);

@@ -257,12 +257,12 @@
 #define USBTMC_TRACECLASSAPI_SHUTDOWN                0x0031
 #define USBTMC_TRACECLASSAPI_ATTACH                  0x0032
 #define USBTMC_TRACECLASSAPI_DETACH                  0x0033
-#define USBTMC_TRACECLASSAPI_IOCTL                   0x0034
+#define USBTMC_TRACEERR_FICL_INVILDARG               0x0034
 #define USBTMC_TRACECLASSAPI_RECEIVE                 0x0035
-#define USBTMC_TRACECLASSAPI_RXINT                   0x0036
+#define USBTMC_TRACEERR_ALLOC                        0x0036
 #define USBTMC_TRACECLASSAPI_RXAVAILABLE             0x0037
 #define USBTMC_TRACECLASSAPI_SEND                    0x0038
-#define USBTMC_TRACECLASSAPI_TXINT                   0x0039
+#define USBTMC_TRACEERR_FICL_OVERRUN                 0x0039
 #define USBTMC_TRACECLASSAPI_TXREADY                 0x0040
 #define USBTMC_TRACECLASSAPI_TXEMPTY                 0x0050
 #define USBTMC_TRACEERR_ALLOCCTRLREQ                 0x0051

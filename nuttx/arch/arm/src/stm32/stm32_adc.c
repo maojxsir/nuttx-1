@@ -142,7 +142,7 @@ struct stm32_dev_s
   uint32_t   paddr;      /* peripheral address for dma */
   uint16_t   dmachan;    /* DMA channel needed by this DAC */
   DMA_HANDLE dma;        /* Allocated DMA channel */
-  uint16_t  *dmabuff;
+  uint8_t  *dmabuff;
   size_t     dmasize;
 #endif
 #ifdef CONFIG_ADC_WATCHDOG
@@ -153,10 +153,10 @@ struct stm32_dev_s
 };
 
 #ifdef CONFIG_ADC1_DMA
-static uint16_t g_adc1_dmabuff[CONFIG_ADC1_DMA_SIZE];
+uint8_t g_adc1_dmabuff[CONFIG_ADC1_DMA_SIZE];
 #endif
 #ifdef CONFIG_ADC3_DMA
-static uint16_t g_adc3_dmabuff[CONFIG_ADC3_DMA_SIZE];
+static uint8_t g_adc3_dmabuff[CONFIG_ADC3_DMA_SIZE];
 #endif
 
 /****************************************************************************
@@ -245,8 +245,8 @@ static struct stm32_dev_s g_adcpriv1 =
 #  ifdef CONFIG_ADC1_DMA
   .dma_enable  = true,
   .paddr       = STM32_ADC1_DR,
-  .dmachan     = STM32_DMA1_CHAN1,
-  .dmabuff     = (uint16_t*)&g_adc1_dmabuff,
+  .dmachan     = DMAMAP_ADC1_1,
+  .dmabuff     = (uint8_t*)&g_adc1_dmabuff,
   .dmasize     = CONFIG_ADC1_DMA_SIZE,
 #  else
   .dma_enable  = false,
@@ -326,7 +326,7 @@ static struct stm32_dev_s g_adcpriv3 =
 #  ifdef CONFIG_ADC3_DMA
   .dma_enable  = true,
   .paddr       = STM32_ADC3_DR,
-  .dmachan     = STM32_DMA2_CHAN5,
+  .dmachan     = DMAMAP_ADC3_1,
   .dmabuff     = &g_adc3_dmabuff,
   .dmasize     = CONFIG_ADC3_DMA_SIZE,
 #  else
@@ -1396,10 +1396,10 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ADC_DMA
         case ADCIOC_DMA_SETUP:
           // config dma
-          ccr = DMA_CCR_MSIZE_16BITS | /* Memory size */
-                         DMA_CCR_PSIZE_16BITS | /* Peripheral size */
-                         DMA_CCR_MINC |         /* Memory increment mode */
-                         DMA_CCR_CIRC ;         /* Circular buffer */
+          ccr = DMA_SCR_PSIZE_16BITS | /* Memory size */
+                         DMA_SCR_PSIZE_16BITS | /* Peripheral size */
+                         DMA_SCR_MINC |         /* Memory increment mode */
+                         DMA_SCR_CIRC ;         /* Circular buffer */
           
           priv->dma = stm32_dmachannel(priv->dmachan);
           if (!priv->dma) {

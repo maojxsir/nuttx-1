@@ -154,14 +154,13 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
     stackSize = fsi->stackSize;
     if (stackSize < FICL_DEFAULT_STACK_SIZE)
         stackSize = FICL_DEFAULT_STACK_SIZE;
-    printf("##1\n");
+
     system->dictionary = ficlDictionaryCreateHashed(system, (unsigned)dictionarySize, FICL_HASH_SIZE);
     system->dictionary->forthWordlist->name = "forth-wordlist";
-    printf("##2\n");
+
     environment = ficlDictionaryCreate(system, (unsigned)environmentSize);
     system->environment = environment;
     system->environment->forthWordlist->name = "environment";
-    printf("##3\n");
     system->callback.textOut = fsi->textOut;
     system->callback.errorOut = fsi->errorOut;
     system->callback.context = fsi->context;
@@ -185,11 +184,8 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
     ** VM to do this - ficlNewVM links one to the head of the system VM list.
     ** ficlCompilePlatform (defined in win32.c, for example) adds platform specific words.
     */
-    printf("##4\n");
     ficlSystemCompileCore(system);
-    printf("##4.1\n");
     ficlSystemCompilePrefix(system);
-    printf("##5\n");
 #if FICL_WANT_FLOAT
     ficlSystemCompileFloat(system);
 #endif /* FICL_WANT_FLOAT */
@@ -197,7 +193,6 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
 #if FICL_WANT_PLATFORM
     ficlSystemCompilePlatform(system);
 #endif /* FICL_WANT_PLATFORM */
-    printf("##6\n");
     ficlSystemSetVersion(system);
 
     /*
@@ -205,11 +200,8 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
     ** this allows constructs like "0b101010" which might parse as a
     ** hex value otherwise.
     */
-    printf("##7\n");
     ficlSystemAddPrimitiveParseStep(system, "?word", ficlVmParseWord);
-    printf("##7.1\n");
     ficlSystemAddPrimitiveParseStep(system, "?prefix", ficlVmParsePrefix);
-    printf("##7.2\n");
     ficlSystemAddPrimitiveParseStep(system, "?number", ficlVmParseNumber);
 #if FICL_WANT_FLOAT
     ficlSystemAddPrimitiveParseStep(system, "?float", ficlVmParseFloatNumber);
@@ -224,7 +216,6 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
     ** can't do much...
     */
     ficlSystemCreateVm(system);
-    printf("##8\n");
 #define ADD_COMPILE_FLAG(name) ficlDictionarySetConstant(environment, #name, name)
 	ADD_COMPILE_FLAG(FICL_WANT_LZ_SOFTCORE);
 	ADD_COMPILE_FLAG(FICL_WANT_FILE);
@@ -246,14 +237,13 @@ ficlSystem *ficlSystemCreate(ficlSystemInformation *fsi)
 #define ADD_COMPILE_STRING(name) ficlDictionarySetConstantString(environment, #name, name)
 	ADD_COMPILE_STRING(FICL_PLATFORM_ARCHITECTURE);
 	ADD_COMPILE_STRING(FICL_PLATFORM_OS);
-    printf("#9\n");
-		printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(system->dictionary));
+	printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(system->dictionary));
     //ficlSystemCompileSoftCore(system);
     ficlSystemDestroyVm(system->vmList);
 
 	if (ficlSystemGlobal == NULL)
 		ficlSystemGlobal = system;
-    printf("#10\n");
+    
     return system;
 }
 
