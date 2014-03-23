@@ -1335,7 +1335,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
         priv->nwrq++;     /* Count of write requests available */
         irqrestore(flags);
     }
-    #if 0
+    
     ficlSystemInformationInitialize(&fsi);
     fsi.textOut = usbtmc_ficlTextOut;
     fsi.errorOut = usbtmc_ficlTextOut;
@@ -1343,7 +1343,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     priv->ficl_system = ficlSystemCreate(&fsi);
     ficlSystemCompileExtras(priv->ficl_system);
     priv->ficl_vm = ficlSystemCreateVm(priv->ficl_system);
-    #endif
+    
     sem_init(&priv->read_sem,0,0);
     sem_init(&priv->write_sem,0,CONFIG_USBTMC_BUFFCOUNT);
 #if 1
@@ -1567,8 +1567,6 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
     index = GETUINT16(ctrl->index);
     len   = GETUINT16(ctrl->len);
     
-    //printf("type=%02x req=%02x value=%04x index=%04x len=%04x\n",
-    //      ctrl->type, ctrl->req, value, index, len);
     
     switch (ctrl->type & USB_REQ_TYPE_MASK)
     {
