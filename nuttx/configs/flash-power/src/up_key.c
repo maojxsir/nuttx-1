@@ -15,7 +15,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "stm3210e-internal.h"
+#include "stm32f407-internal.h"
 #include "74595lib.h"
 #include "up_key.h"
 

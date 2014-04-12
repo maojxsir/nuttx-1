@@ -21,7 +21,7 @@
 #include <nuttx/analog/adc.h>
 
 #include "up_arch.h"
-#include "stm3210e-internal.h"
+#include "stm32f407-internal.h"
 #include "up_key.h"
 #include "up_display.h"
 #include "stm32_dac.h"

@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3210e-eval/include/board.h
+ * configs/stm32f4discovery/include/board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,17 +34,19 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_BOARD_BOARD_H
-#define __ARCH_BOARD_BOARD_H
+#ifndef __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H
+#define __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 #endif
+
 #include "stm32_rcc.h"
 #include "stm32_sdio.h"
 #include "stm32.h"
@@ -54,107 +56,135 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
+/* The STM32F4 Discovery board features a single 8MHz crystal.  Space is provided
+ * for a 32kHz RTC backup crystal, but it is not stuffed.
+ *
+ * This is the canonical configuration:
+ *   System Clock source           : PLL (HSE)
+ *   SYSCLK(Hz)                    : 168000000    Determined by PLL configuration
+ *   HCLK(Hz)                      : 168000000    (STM32_RCC_CFGR_HPRE)
+ *   AHB Prescaler                 : 1            (STM32_RCC_CFGR_HPRE)
+ *   APB1 Prescaler                : 4            (STM32_RCC_CFGR_PPRE1)
+ *   APB2 Prescaler                : 2            (STM32_RCC_CFGR_PPRE2)
+ *   HSE Frequency(Hz)             : 8000000      (STM32_BOARD_XTAL)
+ *   PLLM                          : 8            (STM32_PLLCFG_PLLM)
+ *   PLLN                          : 336          (STM32_PLLCFG_PLLN)
+ *   PLLP                          : 2            (STM32_PLLCFG_PLLP)
+ *   PLLQ                          : 7            (STM32_PLLCFG_PLLQ)
+ *   Main regulator output voltage : Scale1 mode  Needed for high speed SYSCLK
+ *   Flash Latency(WS)             : 5
+ *   Prefetch Buffer               : OFF
+ *   Instruction cache             : ON
+ *   Data cache                    : ON
+ *   Require 48MHz for USB OTG FS, : Enabled
+ *   SDIO and RNG clock
+ */
 
-/* On-board crystal frequency is 8MHz (HSE) */
+/* HSI - 16 MHz RC factory-trimmed
+ * LSI - 32 KHz RC
+ * HSE - On-board crystal frequency is 8MHz
+ * LSE - 32.768 kHz
+ */
 
-#define STM32_BOARD_XTAL        8000000ul
+#define STM32_BOARD_XTAL        25000000ul
 
-/* PLL source is HSE/1, PLL multipler is 9: PLL frequency is 8MHz (XTAL) x 9 = 72MHz */
+#define STM32_HSI_FREQUENCY     16000000ul
+#define STM32_LSI_FREQUENCY     32000
+#define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
+#define STM32_LSE_FREQUENCY     32768
 
-#define STM32_CFGR_PLLSRC       RCC_CFGR_PLLSRC
-#define STM32_CFGR_PLLXTPRE     0
-#define STM32_CFGR_PLLMUL       RCC_CFGR_PLLMUL_CLKx9
-#define STM32_PLL_FREQUENCY     (9*STM32_BOARD_XTAL)
+/* Main PLL Configuration.
+ *
+ * PLL source is HSE
+ * PLL_VCO = (STM32_HSE_FREQUENCY / PLLM) * PLLN
+ *         = (8,000,000 / 8) * 336
+ *         = 336,000,000
+ * SYSCLK  = PLL_VCO / PLLP
+ *         = 336,000,000 / 2 = 168,000,000
+ * USB OTG FS, SDIO and RNG Clock
+ *         =  PLL_VCO / PLLQ
+ *         = 48,000,000
+ */
 
-/* Use the PLL and set the SYSCLK source to be the PLL */
+#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
+#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(336)
+#define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
+#define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(7)
 
-#define STM32_SYSCLK_SW         RCC_CFGR_SW_PLL
-#define STM32_SYSCLK_SWS        RCC_CFGR_SWS_PLL
-#define STM32_SYSCLK_FREQUENCY  STM32_PLL_FREQUENCY
+#define STM32_SYSCLK_FREQUENCY  168000000ul
 
-/* AHB clock (HCLK) is SYSCLK (72MHz) */
+/* AHB clock (HCLK) is SYSCLK (168MHz) */
 
-#define STM32_RCC_CFGR_HPRE     RCC_CFGR_HPRE_SYSCLK
-#define STM32_HCLK_FREQUENCY    STM32_PLL_FREQUENCY
-#define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY    /* same as above, to satisfy compiler */
+#define STM32_RCC_CFGR_HPRE     RCC_CFGR_HPRE_SYSCLK  /* HCLK  = SYSCLK / 1 */
+#define STM32_HCLK_FREQUENCY    STM32_SYSCLK_FREQUENCY
+#define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY  /* same as above, to satisfy compiler */
 
-/* APB2 clock (PCLK2) is HCLK (72MHz) */
+/* APB1 clock (PCLK1) is HCLK/4 (42MHz) */
 
-#define STM32_RCC_CFGR_PPRE2    RCC_CFGR_PPRE2_HCLK
-#define STM32_PCLK2_FREQUENCY   STM32_HCLK_FREQUENCY
-#define STM32_APB2_CLKIN        (STM32_PCLK2_FREQUENCY)   /* Timers 2-7, 12-14 */
+#define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLKd4     /* PCLK1 = HCLK / 4 */
+#define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/4)
 
-/* APB2 timers 1 and 8 will receive PCLK2. */
-
-#define STM32_APB2_TIM1_CLKIN   (STM32_PCLK2_FREQUENCY)
-#define STM32_APB2_TIM8_CLKIN   (STM32_PCLK2_FREQUENCY)
-
-/* APB1 clock (PCLK1) is HCLK/2 (36MHz) */
-
-#define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLKd2
-#define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
-
-/* APB1 timers 2-4 will be twice PCLK1 (I presume the remaining will receive PCLK1) */
+/* Timers driven from APB1 will be twice PCLK1 */
 
 #define STM32_APB1_TIM2_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM3_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (2*STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM5_CLKIN   (STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM6_CLKIN   (STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM7_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM5_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM6_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM7_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM12_CLKIN  (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM13_CLKIN  (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM14_CLKIN  (2*STM32_PCLK1_FREQUENCY)
 
-/* USB divider -- Divide PLL clock by 1.5 */
+/* APB2 clock (PCLK2) is HCLK/2 (84MHz) */
 
-#define STM32_CFGR_USBPRE       0
+#define STM32_RCC_CFGR_PPRE2    RCC_CFGR_PPRE2_HCLKd2     /* PCLK2 = HCLK / 2 */
+#define STM32_PCLK2_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
+
+/* Timers driven from APB2 will be twice PCLK2 */
+
+#define STM32_APB2_TIM1_CLKIN   (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM8_CLKIN   (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM9_CLKIN   (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM10_CLKIN  (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM11_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 
 /* Timer Frequencies, if APBx is set to 1, frequency is same to APBx
  * otherwise frequency is 2xAPBx. 
- * Note: TIM1,8 are on APB2, others on APB1 */
+ * Note: TIM1,8 are on APB2, others on APB1
+ */
 
 #define STM32_TIM18_FREQUENCY   STM32_HCLK_FREQUENCY
-#define STM32_TIM27_FREQUENCY   STM32_HCLK_FREQUENCY
-
-/* SDIO dividers.  Note that slower clocking is required when DMA is disabled 
- * in order to avoid RX overrun/TX underrun errors due to delayed responses
- * to service FIFOs in interrupt driven mode.  These values have not been
- * tuned!!!
- *
- * HCLK=72MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(178+2)=400 KHz
- */
-  
-#define SDIO_INIT_CLKDIV        (178 << SDIO_CLKCR_CLKDIV_SHIFT)
-
-/* DMA ON:  HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(2+2)=18 MHz
- * DMA OFF: HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(3+2)=14.4 MHz
- */
-
-#ifdef CONFIG_SDIO_DMA
-#  define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT) 
-#else
-#  define SDIO_MMCXFR_CLKDIV    (3 << SDIO_CLKCR_CLKDIV_SHIFT) 
-#endif
-
-/* DMA ON:  HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(1+2)=24 MHz
- * DMA OFF: HCLK=72 MHz, SDIOCLK=72MHz, SDIO_CK=HCLK/(3+2)=14.4 MHz
- */
-
-#ifdef CONFIG_SDIO_DMA
-#  define SDIO_SDXFR_CLKDIV     (1 << SDIO_CLKCR_CLKDIV_SHIFT)
-#else
-#  define SDIO_SDXFR_CLKDIV     (3 << SDIO_CLKCR_CLKDIV_SHIFT)
-#endif
-
-/* SRAM definitions *****************************************************************/
-/* The 8 Mbit SRAM is provided on the PT3 board using the FSMC_NE3 chip select. */
-
-/* This is the Bank1 SRAM3 address: */
-
-#define BOARD_SRAM_BASE    0x68000000     /* Bank2 SRAM3 base address */
-#define BOARD_SRAM_SIZE    (1*1024*1024)  /* 8-Mbit = 1-Mbyte */
+#define STM32_TIM27_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
 
 /* LED definitions ******************************************************************/
+/* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
+ * way.  The following definitions are used to access individual LEDs.
+ */
 
-/* The STM3210E-EVAL board has 4 LEDs that we will encode as: */
+/* LED index values for use with stm32_setled() */
+
+#define BOARD_LED1        0
+#define BOARD_LED2        1
+#define BOARD_LED3        2
+#define BOARD_LED4        3
+#define BOARD_NLEDS       4
+
+#define BOARD_LED_GREEN   BOARD_LED1
+#define BOARD_LED_ORANGE  BOARD_LED2
+#define BOARD_LED_RED     BOARD_LED3
+#define BOARD_LED_BLUE    BOARD_LED4
+
+/* LED bits for use with stm32_setleds() */
+
+#define BOARD_LED1_BIT    (1 << BOARD_LED1)
+#define BOARD_LED2_BIT    (1 << BOARD_LED2)
+#define BOARD_LED3_BIT    (1 << BOARD_LED3)
+#define BOARD_LED4_BIT    (1 << BOARD_LED4)
+
+/* If CONFIG_ARCH_LEDs is defined, then NuttX will control the 4 LEDs on board the
+ * stm32f4discovery.  The following definitions describe how NuttX controls the LEDs:
+ */
 
 #define LED_STARTED       0  /* LED1 */
 #define LED_HEAPALLOCATE  1  /* LED2 */
@@ -165,43 +195,53 @@
 #define LED_ASSERTION     6  /* LED1 + LED2 + LED3 */
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED4 */
 
-/* The STM3210E-EVAL supports several buttons
+/* Button definitions ***************************************************************/
+/* The STM32F4 Discovery supports one button: */
+
+#define BUTTON_USER        0
+
+#define NUM_BUTTONS        1
+
+#define BUTTON_USER_BIT    (1 << BUTTON_USER)
+
+/* Alternate function pin selections ************************************************/
+
+/* UART2:
  *
- * Reset           -- Connected to NRST
- * Wakeup          -- Connected to PA.0
- * Tamper          -- Connected to PC.13
- * Key             -- Connected to PG.8
- *
- * And a Joystick
- *
- * Joystick center -- Connected to PG.7
- * Joystick down   -- Connected to PD.3
- * Joystick left   -- Connected to PG.14
- * Joystick right  -- Connected to PG.13
- * Joystick up     -- Connected to PG.15
+ * The STM32F4 Discovery has no on-board serial devices, but the console is
+ * brought out to PA2 (TX) and PA3 (RX) for connection to an external serial device.
+ * (See the README.txt file for other options)
  */
 
-#define BUTTON_WAKEUP      0
-#define BUTTON_TAMPER      1
-#define BUTTON_KEY         2
+#define GPIO_USART2_RX GPIO_USART2_RX_1
+#define GPIO_USART2_TX GPIO_USART2_TX_1
 
-#define JOYSTICK_SEL       3
-#define JOYSTICK_DOWN      4
-#define JOYSTICK_LEFT      5
-#define JOYSTICK_RIGHT     6
-#define JOYSTICK_UP        7
+/* PWM
+ *
+ * The STM32F4 Discovery has no real on-board PWM devices, but the board can be
+ * configured to output a pulse train using TIM4 CH2 on PD13.
+ */
 
-#define NUM_BUTTONS        8
+#define GPIO_TIM4_CH2OUT GPIO_TIM4_CH2OUT_2
 
-#define BUTTON_WAKEUP_BIT  (1 << BUTTON_WAKEUP)
-#define BUTTON_TAMPER_BIT  (1 << BUTTON_TAMPER)
-#define BUTTON_KEY_BIT     (1 << BUTTON_KEY)
+/* SPI - There is a MEMS device on SPI1 using these pins: */
 
-#define JOYSTICK_SEL_BIT   (1 << JOYSTICK_SEL)
-#define JOYSTICK_DOWN_BIT  (1 << JOYSTICK_DOWN)
-#define JOYSTICK_LEFT_BIT  (1 << JOYSTICK_LEFT)
-#define JOYSTICK_RIGHT_BIT (1 << JOYSTICK_RIGHT)
-#define JOYSTICK_UP_BIT    (1 << JOYSTICK_UP)
+#define GPIO_SPI1_MISO GPIO_SPI1_MISO_1
+#define GPIO_SPI1_MOSI GPIO_SPI1_MOSI_1
+#define GPIO_SPI1_SCK  GPIO_SPI1_SCK_1
+
+/* Timer Inputs/Outputs (see the README.txt file for options) */
+
+#define GPIO_TIM2_CH1IN  GPIO_TIM2_CH1IN_2
+#define GPIO_TIM2_CH2IN  GPIO_TIM2_CH2IN_1
+
+#define GPIO_TIM8_CH1IN  GPIO_TIM8_CH1IN_1
+#define GPIO_TIM8_CH2IN  GPIO_TIM8_CH2IN_1
+
+#define GPIO_USART1_TX   GPIO_USART1_TX_2
+#define GPIO_USART1_RX   GPIO_USART1_RX_2
+#define GPIO_USART3_TX   GPIO_USART3_TX_1
+#define GPIO_USART3_RX   GPIO_USART3_RX_1
 
 /************************************************************************************
  * Public Data
@@ -230,88 +270,22 @@ extern "C" {
  *
  ************************************************************************************/
 
-EXTERN void stm32_boardinitialize(void);
+void stm32_boardinitialize(void);
 
 /************************************************************************************
- * Button support.
+ * Name:  stm32_ledinit, stm32_setled, and stm32_setleds
  *
  * Description:
- *   up_buttoninit() must be called to initialize button resources.  After
- *   that, up_buttons() may be called to collect the current state of all
- *   buttons or up_irqbutton() may be called to register button interrupt
- *   handlers.
- *
- *   After up_buttoninit() has been called, up_buttons() may be called to
- *   collect the state of all buttons.  up_buttons() returns an 8-bit bit set
- *   with each bit associated with a button.  See the BUTTON_*_BIT and JOYSTICK_*_BIT
- *   definitions in board.h for the meaning of each bit.
- *
- *   up_irqbutton() may be called to register an interrupt handler that will
- *   be called when a button is depressed or released.  The ID value is a
- *   button enumeration value that uniquely identifies a button resource. See the
- *   BUTTON_* and JOYSTICK_* definitions in board.h for the meaning of enumeration
- *   value.  The previous interrupt handler address is returned (so that it may
- *   restored, if so desired).
+ *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board LEDs.  If
+ *   CONFIG_ARCH_LEDS is not defined, then the following interfaces are available to
+ *   control the LEDs from user applications.
  *
  ************************************************************************************/
 
-#ifdef CONFIG_ARCH_BUTTONS
-EXTERN void up_buttoninit(void);
-EXTERN uint8_t up_buttons(void);
-#ifdef CONFIG_ARCH_IRQBUTTONS
-EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
-#endif
-#endif
-
-/************************************************************************************
- * Name:  stm3210e_lcdclear
- *
- * Description:
- *   This is a non-standard LCD interface just for the STM3210E-EVAL board.  Because
- *   of the various rotations, clearing the display in the normal way by writing a
- *   sequences of runs that covers the entire display can be very slow.  Here the
- *   dispaly is cleared by simply setting all GRAM memory to the specified color.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_STM32_FSMC
-EXTERN void stm3210e_lcdclear(uint16_t color);
-#endif
-
-/************************************************************************************
- * Name: stm32_lm75initialize
- *
- * Description:
- *   Initialize and register the LM-75 Temperature Sensor driver.
- *
- * Input parameters:
- *   devpath - The full path to the driver to register. E.g., "/dev/temp0"
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-#if defined(CONFIG_I2C) && defined(CONFIG_I2C_LM75) && defined(CONFIG_STM32_I2C1)
-EXTERN int stm32_lm75initialize(FAR const char *devpath);
-#endif
-
-/************************************************************************************
- * Name: stm32_lm75attach
- *
- * Description:
- *   Attach the LM-75 interrupt handler
- *
- * Input parameters:
- *   irqhandler - the LM-75 interrupt handler
- *
- * Returned Value:
- *   The previous LM-75 interrupt handler
- *
- ************************************************************************************/
-
-#if defined(CONFIG_I2C) && defined(CONFIG_I2C_LM75) && defined(CONFIG_STM32_I2C1)
-EXTERN xcpt_t stm32_lm75attach(xcpt_t irqhandler);
+#ifndef CONFIG_ARCH_LEDS
+void stm32_ledinit(void);
+void stm32_setled(int led, bool ledon);
+void stm32_setleds(uint8_t ledset);
 #endif
 
 #undef EXTERN
@@ -320,4 +294,4 @@ EXTERN xcpt_t stm32_lm75attach(xcpt_t irqhandler);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __ARCH_BOARD_BOARD_H */
+#endif  /* __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H */

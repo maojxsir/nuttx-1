@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIGS_CF_POWER_SRC_STM3210E_INTERNAL_H
-#define __CONFIGS_CF_POWER_SRC_STM3210E_INTERNAL_H
+#ifndef __CONFIGS_FLASH_POWER_INTERNAL_H
+#define __CONFIGS_FLASH_POWER_INTERNAL_H
 
 /************************************************************************************
  * Included Files
@@ -49,38 +49,36 @@
  * Definitions
  ************************************************************************************/
 
-/* STM3210E-EVAL GPIOs **************************************************************/
+/* FlashPower    GPIOs **************************************************************/
 /* LEDs */
 
-#define GPIO_FAN    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+#define GPIO_FAN    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
                          GPIO_OUTPUT_CLEAR|GPIO_PORTE | GPIO_PIN2)
 
-#define GPIO_RL16V (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_RL2V (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
 	                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN3)
-#define GPIO_RL8V    (GPIO_OUTPUT |GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_RL4V    (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
 	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN4)
-#define GPIO_RL4V    (GPIO_OUTPUT |GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_RL8V    (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
 	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN5)
-#define GPIO_RL2V    (GPIO_OUTPUT |GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+#define GPIO_RL16V    (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
 	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN6)	  
 	                            
-#define GPIO_OUT_EN (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-	                               GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN5)
-#define GPIO_AC_OV    (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_MODE_INPUT | \
-	                               GPIO_PORTB | GPIO_PIN6)
+#define GPIO_OUT_EN (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+	                               GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN15)
+#define GPIO_AC_OV    (GPIO_INPUT | GPIO_FLOAT | GPIO_PUSHPULL | \
+	                               GPIO_SPEED_50MHz | GPIO_PORTB | GPIO_PIN6)
 
-#define GPIO_WP    (GPIO_OUTPUT |GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN12)
+#define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN7)
 
-#define GPIO_SER_OUT (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-	                                GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN13 )
-#define GPIO_SER_IN     (GPIO_INPUT | GPIO_CNF_INPULLDWN |GPIO_MODE_INPUT | \
-	                                 GPIO_PORTE | GPIO_PIN13)
+#ifdef CONFIG_USBHOST
+#  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_EXTI|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN6)
 
-#define GPIO_RCK         (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-	                                GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN14)
-#define GPIO_SCK          (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-	                                 GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN15)
+#else
+#  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN6)
+#endif
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/

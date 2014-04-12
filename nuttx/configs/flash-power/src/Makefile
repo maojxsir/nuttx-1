@@ -41,7 +41,7 @@ ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 #CSRCS		= up_boot.c up_leds.c up_buttons.c up_spi.c up_usbdev.c
-CSRCS           = up_boot.c 74595lib.c up_display.c up_key.c user.c
+CSRCS           = up_boot.c #up_display.c up_key.c user.c
 
 ifeq ($(CONFIG_STM32_FSMC),y)
 CSRCS		+= up_lcd.c up_extcontext.c up_extmem.c up_selectnor.c \
@@ -49,8 +49,8 @@ CSRCS		+= up_lcd.c up_extcontext.c up_extmem.c up_selectnor.c \
 			  up_selectlcd.c up_deselectlcd.c
 endif
 
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
+ifeq ($(CONFIG_STM32_OTGFS),y)
+CSRCS += stm32_usb.c
 endif
 
 ifeq ($(CONFIG_DAC),y)
@@ -68,29 +68,11 @@ ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
 CSRCS		+= up_composite.c
 endif
 
-ifeq ($(CONFIG_I2C_LM75),y)
-CSRCS		+= up_lm75.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
-endif
-
 ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
-ifeq ($(CONFIG_PM_CUSTOMINIT),y)
-CSRCS		+= up_pm.c
-endif
 
-ifeq ($(CONFIG_PM_BUTTONS),y)
-CSRCS		+= up_pmbuttons.c 
-endif
-
-ifeq ($(CONFIG_IDLE_CUSTOM),y)
-CSRCS		+= up_idle.c
-endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

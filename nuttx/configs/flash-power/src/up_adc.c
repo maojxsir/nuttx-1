@@ -50,7 +50,7 @@
 #include "up_arch.h"
 
 #include "stm32_pwm.h"
-#include "stm3210e-internal.h"
+#include "stm32f407-internal.h"
 
 #ifdef CONFIG_ADC
 
@@ -72,7 +72,7 @@
 #  undef CONFIG_STM32_ADC1
 #endif
 
-#if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
+#if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC3)
 #ifndef CONFIG_STM32_ADC1
 #  warning "Channel information only available for ADC1"
 #endif
@@ -80,7 +80,6 @@
 /* The number of ADC channels in the conversion list */
 
 #define ADC1_NCHANNELS 1
-#define ADC2_NCHANNELS 1
 #define ADC3_NCHANNELS 1
 /************************************************************************************
  * Private Data
@@ -90,27 +89,20 @@
 
 #ifdef CONFIG_STM32_ADC1
 /* for Volt*/
-static const uint8_t  g_adc1chanlist[ADC1_NCHANNELS] = {12};
+static const uint8_t  g_adc1chanlist[ADC1_NCHANNELS] = {11};
 
 /* Configurations of pins used byte each ADC channels */
 
-static const uint32_t g_adc1pinlist[]  = {GPIO_ADC12_IN13};
+static const uint32_t g_adc1pinlist[]  = {GPIO_ADC1_IN11};
 #endif
-#ifdef CONFIG_STM32_ADC2
-/*for current*/
-static const uint8_t  g_adc2chanlist[ADC2_NCHANNELS] = {13};
 
-/* Configurations of pins used byte each ADC channels */
-
-static const uint32_t g_adc2pinlist[]  = {GPIO_ADC12_IN12};
-#endif
 #ifdef CONFIG_STM32_ADC3
 /*For temperature*/
-static const uint8_t  g_adc3chanlist[ADC3_NCHANNELS] = {10};
+static const uint8_t  g_adc3chanlist[ADC3_NCHANNELS] = {6};
 
 /* Configurations of pins used byte each ADC channels */
 
-static const uint32_t g_adc3pinlist[]  = {GPIO_ADC12_IN10};
+static const uint32_t g_adc3pinlist[]  = {GPIO_ADC3_IN6};
 #endif
 /************************************************************************************
  * Private Functions
@@ -148,12 +140,7 @@ int adc_devinit(void)
           stm32_configgpio(g_adc1pinlist[i]);
         }
 #endif
-#ifdef CONFIG_STM32_ADC2
-      for (i = 0; i < ADC2_NCHANNELS; i++)
-        {
-          stm32_configgpio(g_adc2pinlist[i]);
-        }
-#endif
+
 #ifdef CONFIG_STM32_ADC3
       for (i = 0; i < ADC3_NCHANNELS; i++)
         {
@@ -178,23 +165,7 @@ int adc_devinit(void)
           return ret;
         }
 #endif        
-#ifdef CONFIG_STM32_ADC2
-      adc = stm32_adcinitialize(2, g_adc2chanlist, ADC2_NCHANNELS);
-      if (adc == NULL)
-        {
-          adbg("ERROR: Failed to get ADC1 interface\n");
-          return -ENODEV;
-        }
 
-      /* Register the ADC driver at "/dev/adc1" */
-
-      ret = adc_register("/dev/adc1", adc);
-      if (ret < 0)
-        {
-          adbg("adc_register /dev/adc1 failed: %d\n", ret);
-          return ret;
-        }
-#endif
 #ifdef CONFIG_STM32_ADC3
       adc = stm32_adcinitialize(3, g_adc3chanlist, ADC3_NCHANNELS);
       if (adc == NULL)
@@ -224,5 +195,5 @@ int adc_devinit(void)
 #endif
 }
 
-#endif /* CONFIG_STM32_ADC1 || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
+#endif /* CONFIG_STM32_ADC1 || CONFIG_STM32_ADC3 */
 #endif /* CONFIG_ADC */

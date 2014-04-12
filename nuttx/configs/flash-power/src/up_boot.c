@@ -45,7 +45,8 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "stm3210e-internal.h"
+#include "stm32f407-internal.h"
+#include <stm32_gpio.h>
 
 /************************************************************************************
  * Definitions
@@ -79,10 +80,6 @@ void stm32_boardinitialize(void)
   stm32_configgpio(GPIO_RL2V);
   stm32_configgpio(GPIO_OUT_EN);
   stm32_configgpio(GPIO_AC_OV);
-  stm32_configgpio(GPIO_WP);
-  stm32_configgpio(GPIO_SER_OUT);
-  stm32_configgpio(GPIO_RCK);
-  stm32_configgpio(GPIO_SCK);
   
 }
 
@@ -104,9 +101,5 @@ void board_initialize(void)
 #ifdef CONFIG_STM32_DAC1
     dac_devinit();
 #endif
-    init_74595();
-    cf_display_init();
-    cf_display_start();
-    cf_key_init();
 }
 #endif

@@ -48,7 +48,7 @@
 #include "chip.h"
 #include "up_arch.h"
 
-#include "stm3210e-internal.h"
+#include "stm32f407-internal.h"
 
 FAR struct dac_dev_s *stm32_dacinitialize(int intf);
 int dac_register(FAR const char *path, FAR struct dac_dev_s *dev);
