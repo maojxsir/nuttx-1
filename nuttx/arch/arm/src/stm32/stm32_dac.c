@@ -440,7 +440,7 @@ static struct stm32_chan_s g_dac2priv =
   .tsel       = DAC2_TSEL_VALUE,
   .tbase      = DAC2_TIMER_BASE,
   .tfrequency = CONFIG_STM32_DAC2_TIMER_FREQUENCY,
-  .dmabuffer  = &g_DAC2DMABuffer;
+  .dmabuffer  = &g_DAC2DMABuffer,
 #endif
 };
 

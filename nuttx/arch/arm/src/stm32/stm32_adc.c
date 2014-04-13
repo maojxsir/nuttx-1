@@ -958,7 +958,7 @@ static void adc_rccreset(struct stm32_dev_s *priv, bool reset)
    * THIS will probably cause some problems!
    */
 
-  adcbit = RCC_APB2RSTR_ADCRST;
+  //adcbit = RCC_APB2RSTR_ADCRST;
 #endif
 
   /* Disable interrupts.  This is necessary because the APB2RTSR register
@@ -1044,16 +1044,23 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   int ret;
 #endif
 
+  static int cnt = 0;
+
   avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
 
   /* Enable ADC reset state */
-
+  if (cnt < 2) {
+    cnt++;
+    printf("adc_reset:reset rcc\n");
   adc_rccreset(priv, true);
 
   /* Release ADC from reset state */
 
   adc_rccreset(priv, false);
+  }else {
+    printf("adc_reset:not reset rcc\n");
+  }
 
   /* Initialize the ADC data structures */
 
@@ -1170,6 +1177,14 @@ static void adc_reset(FAR struct adc_dev_s *dev)
       regval |= (uint32_t)priv->chanlist[i] << offset;
     }
 
+
+  /* Set the number of conversions */
+
+  DEBUGASSERT(priv->nchannels <= ADC_MAX_SAMPLES);
+
+  regval |= (((uint32_t)priv->nchannels-1) << ADC_SQR1_L_SHIFT);
+  adc_putreg(priv, STM32_ADC_SQR1_OFFSET, regval);
+
   /* ADC CCR configuration */
 
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
@@ -1179,13 +1194,6 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   regval |=  (ADC_CCR_MULTI_NONE | ADC_CCR_DMA_DISABLED | ADC_CCR_ADCPRE_DIV2);
   putreg32(regval, STM32_ADC_CCR);
 #endif
-
-  /* Set the number of conversions */
-
-  DEBUGASSERT(priv->nchannels <= ADC_MAX_SAMPLES);
-
-  regval |= (((uint32_t)priv->nchannels-1) << ADC_SQR1_L_SHIFT);
-  adc_putreg(priv, STM32_ADC_SQR1_OFFSET, regval);
 
   /* Set the channel index of the first conversion */
 
@@ -1251,7 +1259,10 @@ static int adc_setup(FAR struct adc_dev_s *dev)
 
   /* Attach the ADC interrupt */
 #ifdef CONFIG_ADC_DMA
-  if (priv->dma_enable == false) 
+  if (priv->dma_enable == true) {
+    printf("adc_setup:call adc_reset\n");
+    adc_reset(dev);
+  } else 
 #endif
   {
     avdbg("intr:%d adc_setup\n",priv->intf);
@@ -1355,16 +1366,18 @@ void adc_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg)
 
   if (status & DMA_STATUS_HTIF) {
     // report adc data to pc
-    cf_report_rawdata_async(priv->dmabuff,priv->dmasize / 2);
+    //cf_report_rawdata_async(priv->dmabuff,priv->dmasize / 2);
 
   } else if (status & DMA_STATUS_TCIF) {
-    cf_report_rawdata_async(priv->dambuff+(priv->dmasize/2),priv->dmasize/2);
+    //cf_report_rawdata_async(priv->dambuff+(priv->dmasize/2),priv->dmasize/2);
+    adc_enable(priv,true);
   } else {
     printf("adc_dmacallback: adc dma transfer error\n");
   }
 
   return;
 #endif
+  printf("adc dma ok\n");
   
 }
 
@@ -1389,17 +1402,19 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
         avdbg("adc_ioctl:invalid parameters\n");
         return -EINVAL;
     }
-
+    printf("adc_ioctl\n");
     switch (cmd) {
         case ANIOC_TRIGGER:
           break;
 #ifdef CONFIG_ADC_DMA
         case ADCIOC_DMA_SETUP:
           // config dma
-          ccr = DMA_SCR_PSIZE_16BITS | /* Memory size */
-                         DMA_SCR_PSIZE_16BITS | /* Peripheral size */
-                         DMA_SCR_MINC |         /* Memory increment mode */
-                         DMA_SCR_CIRC ;         /* Circular buffer */
+          printf("adc_ioctl:dma setup\n");
+          ccr = DMA_SCR_DIR_P2M |
+                DMA_SCR_PSIZE_16BITS | /* Memory size */
+                DMA_SCR_PSIZE_16BITS | /* Peripheral size */
+                DMA_SCR_MINC |         /* Memory increment mode */
+                DMA_SCR_CIRC ;         /* Circular buffer */
           
           priv->dma = stm32_dmachannel(priv->dmachan);
           if (!priv->dma) {
@@ -1410,15 +1425,20 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
           break;
 
         case ADCIOC_DMA_START:
+          printf("adc_ioctl:dma start\n");
           adc_enable(priv,false);
+          //adc_startconv(priv,false);
           stm32_dmastart(priv->dma,adc_dmacallback,dev,true);
           adc_enable(priv,true);
+          //adc_startconv(priv,true);
           break;
 
         case ADCIOC_DMA_STOP:
           if (priv->dma) {
-            adc_enable(priv,false);
+            //adc_enable(priv,false);
+            //adc_startconv(priv,false);
             stm32_dmastop(priv->dma);
+            stm32_dmafree(priv->dma);
           }
           break;
           

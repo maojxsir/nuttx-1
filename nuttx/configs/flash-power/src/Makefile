@@ -43,10 +43,13 @@ AOBJS		= $(ASRCS:.S=$(OBJEXT))
 #CSRCS		= up_boot.c up_leds.c up_buttons.c up_spi.c up_usbdev.c
 CSRCS           = up_boot.c #up_display.c up_key.c user.c
 
+ifeq ($(CONFIG_LCD_SSD1289),y)
+CSRCS += stm32_ssd1289.c
+endif
+
+
 ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_lcd.c up_extcontext.c up_extmem.c up_selectnor.c \
-			  up_deselectnor.c up_selectsram.c up_deselectsram.c \
-			  up_selectlcd.c up_deselectlcd.c
+CSRCS += stm32_extmem.c
 endif
 
 ifeq ($(CONFIG_STM32_OTGFS),y)

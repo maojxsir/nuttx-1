@@ -10,6 +10,10 @@ config GL_FLASHPOWER
     bool "Flash Power macro"
     default y
 
+config SSD1289_WRONLY
+    bool "SSD1289 Write only"
+    default y
+
 
 endif
 

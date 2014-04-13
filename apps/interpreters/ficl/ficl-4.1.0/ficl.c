@@ -51,6 +51,8 @@ int ficl_main(int argc, char **argv)
     ficlVm *vm;
 	ficlSystem *system;
 
+  up_lcdinitialize();
+
     system = ficlSystemCreate(NULL);
     ficlSystemCompileExtras(system);
     vm = ficlSystemCreateVm(system);

@@ -107,6 +107,7 @@ static int adc_open(FAR struct file *filep)
   int                   ret   = OK;
 
   /* If the port is the middle of closing, wait until the close is finished */
+  printf("adc_open\n");
 
   if (sem_wait(&dev->ad_closesem) != OK)
     {
@@ -365,7 +366,7 @@ static int adc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR struct inode *inode = filep->f_inode;
   FAR struct adc_dev_s *dev = inode->i_private;
   int ret;
-
+  printf("ADC:adc_ioctl\n");
   ret = dev->ad_ops->ao_ioctl(dev, cmd, arg);
   return ret;
 }
