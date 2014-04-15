@@ -14,6 +14,11 @@ config SSD1289_WRONLY
     bool "SSD1289 Write only"
     default y
 
+config LCD_ILI93XX
+    bool "Flash Power ili93xx lcd driver"
+    default y
+
+
 
 endif
 

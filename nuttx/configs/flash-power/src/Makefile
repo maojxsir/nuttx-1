@@ -47,6 +47,9 @@ ifeq ($(CONFIG_LCD_SSD1289),y)
 CSRCS += stm32_ssd1289.c
 endif
 
+ifeq ($(CONFIG_LCD_ILI93XX),y)
+CSRCS += up_ili93xx.c
+endif
 
 ifeq ($(CONFIG_STM32_FSMC),y)
 CSRCS += stm32_extmem.c

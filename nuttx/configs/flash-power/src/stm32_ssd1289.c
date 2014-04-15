@@ -97,7 +97,7 @@
  * 0-24 correspond to ARM address bits 1-25. 
  */
 
-#define STM32_LCDBASE ((uintptr_t)(0x60000000 | 0x08000000))
+#define STM32_LCDBASE ((uintptr_t)(0x60000000 | 0x00000000))
 #define LCD_INDEX     (STM32_LCDBASE)
 #define LCD_DATA      (STM32_LCDBASE + 0x00020000)
 
