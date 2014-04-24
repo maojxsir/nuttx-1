@@ -257,9 +257,6 @@
 #  define lcdvdbg(x...)
 #endif
 
-#undef lcddbg
-#define lcddbg printf
-#define lcdvdbg printf
 
 /************************************************************************************
  * Private Type Definition
@@ -606,8 +603,8 @@ static void stm32_setcursor(FAR struct stm32_dev_s *priv, uint16_t col, uint16_t
     }
   else
     {
-      stm32_writereg(priv, GRAM_ADDR_SET_H, (uint16_t)(address&0xFF)); /* GRAM vertical address */
-      stm32_writereg(priv, GRAM_ADDR_SET_V, (uint16_t)(address>>8)); /* GRAM horizontal address */
+      stm32_writereg(priv, GRAM_ADDR_SET_H, row); /* GRAM vertical address */
+      stm32_writereg(priv, GRAM_ADDR_SET_V, col); /* GRAM horizontal address */
     }
 }
 
@@ -972,6 +969,7 @@ static int stm32_setpower(struct lcd_dev_s *dev, int power)
   FAR struct stm32_dev_s *priv = (FAR struct stm32_dev_s *)dev;
 
   lcdvdbg("power: %d\n", power);
+  printf("ILI9320:stm32_setpower(%d)\n",power);
   DEBUGASSERT((unsigned)power <= CONFIG_LCD_MAXPOWER);
 
   /* Set new power level */
@@ -1100,6 +1098,7 @@ static int stm32_setcontrast(struct lcd_dev_s *dev, unsigned int contrast)
 #if !defined(CONFIG_STM32_ILI9300_DISABLE) || !defined(CONFIG_STM32_ILI9320_DISABLE) || !defined(CONFIG_STM32_ILI9321_DISABLE)
 static void stm32_lcd9300init(FAR struct stm32_dev_s *priv, enum lcd_type_e lcdtype)
 {
+  printf("+ILI9320:stm32_lcd9300init\n");
   stm32_writereg(priv, START_OSC,   0x0001); /* Start internal OSC */
   stm32_writereg(priv, DRV_OUTPUT_CTL, 0x0100); /* Driver Output Control */
   stm32_writereg(priv, LCD_DRIVING_CTL, 0x0700); /* LCD Driver Waveform Control */
@@ -1151,6 +1150,7 @@ static void stm32_lcd9300init(FAR struct stm32_dev_s *priv, enum lcd_type_e lcdt
   stm32_writereg(priv, PANEL_IF_CTL_6, 0x0000); /* Frame Cycle Control */
   up_mdelay(50);
   stm32_writereg(priv, DISP_CTL_1,   0x0000); /* Display off */
+  printf("-ILI9320:stm32_9300init\n");
 }
 #endif
 
@@ -1496,12 +1496,12 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
   int ret = OK;
 
   /* Check LCD ID */
-
+  printf("+ILI9320:stm32_lcdinitilize\n");
   stm32_writereg(priv, START_OSC, 0x0001); /* Start internal oscillator */
   up_mdelay(50);
 
   id = stm32_readreg(priv, START_OSC);     /* Read the ID register */
-  lcddbg("LCD ID: %04x\n", id);
+  printf("LCD ID: %04x\n", id);
 
 
   /* Initialize the LCD hardware */
@@ -1575,7 +1575,8 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
       ret = -ENODEV;
     }
 
-  lcddbg("LCD type: %d\n", priv->type);
+  printf("LCD type: %d\n", priv->type);
+  printf("-ILI9320:stm32_lcdinitialize\n");
   return ret;
 }
  /************************************************************************************
@@ -1589,7 +1590,6 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
   *   Initialize to the LCD
   *
   ************************************************************************************/
-#define LCD_NADDRLINES   1   /* A16 */
 #define LCD_NDATALINES   16  /* D0-15 */
 
  void stm32_selectlcd(void)
@@ -1598,7 +1598,7 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
   int i;
 
    /* Configure GPIO pins */
-
+   printf("+ILI9320:stm32_selectlcd\n");
    stm32_extmemdata(LCD_NDATALINES);             /* Common data lines: D0-D15 */
    for (i = 0; i < NLCD_CONFIG; i++)
     {
@@ -1608,7 +1608,7 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
    /* Enable AHB clocking to the FSMC */
 
    stm32_enablefsmc();
-
+   printf("stm32_enablefsmc\n");
    /* Color LCD configuration (LCD configured as follow):
     * 
     *   - Data/Address MUX  = Disable   "FSMC_BCR_MUXEN" just not enable it.
@@ -1633,6 +1633,7 @@ static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
    /* Enable the bank by setting the MBKEN bit */
 
    putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR1);
+   printf("-ILI9320:stm32_selectlcd\n");
  }
 
 /************************************************************************************
@@ -1651,7 +1652,7 @@ int up_lcdinitialize(void)
   int ret;
   int i;
 
-  lcdvdbg("Initializing\n");
+  printf("ILI9320:Initializing\n");
 
   /* Configure control pins */
   stm32_selectlcd();

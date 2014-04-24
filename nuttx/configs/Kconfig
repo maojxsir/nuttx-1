@@ -635,7 +635,7 @@ config ARCH_BOARD_STM32_TINY
 
 config ARCH_BOARD_FLASH_POWER
         bool "Flash Power board by gan0ling'Studio"
-        depends on ARCH_CHIP_STM32F407IG
+        depends on ARCH_CHIP_STM32F407ZG
 
 config ARCH_BOARD_STM3210E_EVAL
 	bool "STMicro STM3210E-EVAL development board"

@@ -627,7 +627,6 @@ int nx_main(int argc, char *argv[])
   int ret;
 
   /* Initialize */
-
   ret = nxeg_initialize();
   message("nx_main: NX handle=%p\n", g_hnx);
   if (!g_hnx || ret < 0)
@@ -882,6 +881,8 @@ errout_with_hwnd2:
 errout_with_hwnd1:
   message("nx_main: Close window #1\n");
   (void)nxeg_closewindow(hwnd1, &g_wstate[0]);
+
+  ficl_main(argc,argv);
 
 errout_with_nx:
 #ifdef CONFIG_NX_MULTIUSER

@@ -1878,7 +1878,7 @@ int up_lcdinitialize(void)
   int ret;
   int i;
 
-  lcdvdbg("Initializing\n");
+  printf("Initializing\n");
 
   /* Configure GPIO pins.  The inialial state of priv->output is false, so
    * we need to configure pins for output initially.
