@@ -1,0 +1,10 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_BOARD_STM32F100RC_GENERIC
+comment "STM32F103RBT6 Super Switch Hardware Configuration"
+
+endif
+
