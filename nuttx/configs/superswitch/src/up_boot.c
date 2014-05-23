@@ -45,7 +45,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "stm3210e-internal.h"
+#include "superswitch-internal.h"
 
 /************************************************************************************
  * Definitions
@@ -60,6 +60,24 @@
  ************************************************************************************/
 
 /************************************************************************************
+ * Name: superswitch_gpioinit
+ *
+ * Description:
+ *   Initialize GPIO to control relay
+ */
+void superswitch_gpioinit(void)
+{
+#if 0
+  stm32_configgpio(GPIO_RELAY_USBDATA);
+  stm32_configgpio(GPIO_RELAY_USBVBUS);
+  stm32_configgpio(GPIO_RELAY_POWER_A);
+  stm32_configgpio(GPIO_RELAY_POWER_B);
+#endif
+  return ;
+}
+
+
+/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
@@ -71,38 +89,11 @@
 
 void stm32_boardinitialize(void)
 {
-  /* If the FSMC and FSMC_SRAM are selected, then enable SRAM access */
+    superswitch_gpioinit();
+}
 
-#if defined(CONFIG_STM32_FSMC) && defined(CONFIG_STM32_FSMC_SRAM)
-  stm32_selectsram();
-#endif
 
-  /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak function
-   * stm32_spiinitialize() has been brought into the link.
-   */
-
-#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2)
-  if (stm32_spiinitialize)
-    {
-      stm32_spiinitialize();
-    }
-#endif
-
-  /* Initialize USB is 1) USBDEV is selected, 2) the USB controller is not
-   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
-   * into the build.
-   */
-
-#if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_USB)
-  if (stm32_usbinitialize)
-    {
-      stm32_usbinitialize();
-    }
-#endif
-
-  /* Configure on-board LEDs if LED support has been selected. */
-
-#ifdef CONFIG_ARCH_LEDS
-  board_led_initialize();
-#endif
+void board_initialize(void)
+{
+  superswitch_timer_init();
 }

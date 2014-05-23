@@ -3,8 +3,12 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_STM32F100RC_GENERIC
-comment "STM32F103RBT6 Super Switch Hardware Configuration"
+if ARCH_BOARD_SUPER_SWITCH
+comment "Super Switch Hardware Configuration"
+
+config SUPER_SWITCH_NSH_RELAY
+        bool "Relay control in nsh. use stm32_writegpio"
+        default n
 
 endif
 

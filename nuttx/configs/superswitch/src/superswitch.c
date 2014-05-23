@@ -48,6 +48,10 @@
 #include "superswitch-internal.h"
 
 
+static int superswitch_tim2_isr(int irq, void *context);
+static int superswitch_tim3_isr(int irq, void *context);
+static int superswitch_tim4_isr(int irq, void *context);
+
 /************************************************************************************
  * Global definition
  ************************************************************************************/
@@ -55,24 +59,48 @@ static struct stm32_tim_dev_s *tim3 = NULL;
 static struct stm32_tim_dev_s *tim4 = NULL;
 static struct stm32_tim_dev_s *tim2 = NULL;
 
+static relay_info g_superswitch_relayinfos[] = {
+  {"USB-DATA",3, superswitch_tim3_isr, NULL}, //TIM3
+  {"USB-VBUS",4, superswitch_tim3_isr, NULL}, //TIM3
+  {"POWER-A", 1, superswitch_tim4_isr, NULL}, //TIM4
+  {"POWER-B", 3, superswitch_tim2_isr, NULL}, //TIM2
+};
+static int g_num_relay = sizeof(g_superswitch_relayinfos)/sizeof(relay_info);
+
+/************************************************************************************
+ * Function
+ ************************************************************************************/
+
 void superswitch_timer_init(void)
 {
+  
   printf("+superswitch_timer_init\n");
   tim2 = stm32_tim_init(2);
   tim3 = stm32_tim_init(3);
   tim4 = stm32_tim_init(4);
-  if (tim3 == NULL || tim4 == NULL) {
+  if (tim3 == NULL || tim4 == NULL || tim2 == NULL) {
       printf("ERROR:superswitch:init tim3/tim4 failed\n");
       return;
   }
+  
+  g_superswitch_relayinfos[0].priv = tim3;
+  g_superswitch_relayinfos[0].isr = superswitch_tim3_isr;
+  g_superswitch_relayinfos[1].priv = tim3;
+  g_superswitch_relayinfos[1].isr = superswitch_tim3_isr;
+  g_superswitch_relayinfos[2].priv = tim4;
+  g_superswitch_relayinfos[2].isr = superswitch_tim4_isr;
+  g_superswitch_relayinfos[3].priv = tim2;
+  g_superswitch_relayinfos[3].isr = superswitch_tim2_isr;
+  
+
   // PERIOD 1S, Compare 0. Default Delay is off
-  STM32_TIM_SETPERIOD(tim2,TIM3_CLOCK*3);
-  STM32_TIM_SETPERIOD(tim3,TIM3_CLOCK*3);
-  STM32_TIM_SETPERIOD(tim4,TIM4_CLOCK*3);
-  STM32_TIM_SETCOMPARE(tim2,3,1000);
-  STM32_TIM_SETCOMPARE(tim3,3,1100);
-  STM32_TIM_SETCOMPARE(tim3,4,1200);
-  STM32_TIM_SETCOMPARE(tim4,1,1300);
+  STM32_TIM_SETPERIOD(tim2,TIM3_CLOCK);
+  STM32_TIM_SETPERIOD(tim3,TIM3_CLOCK);
+  STM32_TIM_SETPERIOD(tim4,TIM4_CLOCK);
+  STM32_TIM_SETCOMPARE(tim2,3,0);
+  STM32_TIM_SETCOMPARE(tim3,3,0);
+  STM32_TIM_SETCOMPARE(tim3,4,0);
+  STM32_TIM_SETCOMPARE(tim4,1,0);
   STM32_TIM_SETCHANNEL(tim2,3,STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_POS);
   STM32_TIM_SETCHANNEL(tim3,3,STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_POS);
   STM32_TIM_SETCHANNEL(tim3,4,STM32_TIM_CH_OUTPWM | STM32_TIM_CH_POLARITY_POS);
@@ -86,4 +114,54 @@ void superswitch_timer_init(void)
   printf("-superswitch_timer_init\n");
 }
 
+static int superswitch_tim2_isr(int irq, void *context)
+{
+  printf("tim2\n");
+  STM32_TIM_ACKINT(tim2,0);
+  
+}
+
+static int superswitch_tim3_isr(int irq, void *context)
+{
+  printf("tim3");
+  STM32_TIM_ACKINT(tim3,0);
+}
+
+static int superswitch_tim4_isr(int irq, void *context)
+{
+  printf("tim4\n");
+  STM32_TIM_ACKINT(tim4,0);
+}
+
+int cmd_relay(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  int i,channel,length=0,high=0;
+  struct stm32_tim_dev_s *tim = NULL;
+   
+  for (i=0; i<g_num_relay; i++ ) {
+    if (strcmp(argv[1],g_superswitch_relayinfos[i].name) == 0) {
+      tim = g_superswitch_relayinfos[i].priv;
+      channel = g_superswitch_relayinfos[i].channel;
+    }
+  }
+
+  if ( (tim==NULL) ) {
+    printf("ERROR:invalid relay id\n");
+    return -1;
+  }
+
+  length = strtol(argv[2],NULL,10);
+  high   = strtol(argv[3],NULL,10);
+  if ((length < 0) || (high < 0)) {
+      printf("ERROR:invalid length or high period\n");
+      return -2;
+  }
+
+  if (length != 0) {
+    STM32_TIM_SETPERIOD(tim,length);
+  }
+  STM32_TIM_SETCOMPARE(tim,channel,high);
+  printf("SUCCESS\n");
+  return 0;
+}
 

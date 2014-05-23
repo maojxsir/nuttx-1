@@ -399,13 +399,15 @@ static int stm32_tim_setisr(FAR struct stm32_tim_dev_s *dev,
 static void stm32_tim_enableint(FAR struct stm32_tim_dev_s *dev, int source)
 {
   ASSERT(dev);
-  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 0, ATIM_DIER_UIE);
+  //stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 0, ATIM_DIER_UIE);
+  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 0, 1<<source);
 }
 
 static void stm32_tim_disableint(FAR struct stm32_tim_dev_s *dev, int source)
 {
   ASSERT(dev);
-  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, ATIM_DIER_UIE, 0);
+  //stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, ATIM_DIER_UIE, 0);
+  stm32_modifyreg16(dev, STM32_BTIM_DIER_OFFSET, 1<<source, 0);
 }
 
 static void stm32_tim_ackint(FAR struct stm32_tim_dev_s *dev, int source)
