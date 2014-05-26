@@ -222,7 +222,7 @@ static void stm32_tim_reload_counter(FAR struct stm32_tim_dev_s *dev)
   stm32_putreg16(dev, STM32_BTIM_EGR_OFFSET, val);
 }
 
-static void stm32_tim_enable(FAR struct stm32_tim_dev_s *dev)
+void stm32_tim_enable(FAR struct stm32_tim_dev_s *dev)
 {
   uint16_t val = stm32_getreg16(dev, STM32_BTIM_CR1_OFFSET);
   val |= ATIM_CR1_CEN;
@@ -230,7 +230,7 @@ static void stm32_tim_enable(FAR struct stm32_tim_dev_s *dev)
   stm32_putreg16(dev, STM32_BTIM_CR1_OFFSET, val);
 }
 
-static void stm32_tim_disable(FAR struct stm32_tim_dev_s *dev)
+void stm32_tim_disable(FAR struct stm32_tim_dev_s *dev)
 {
   uint16_t val = stm32_getreg16(dev, STM32_BTIM_CR1_OFFSET);
   val &= ~ATIM_CR1_CEN;
@@ -323,7 +323,7 @@ static int stm32_tim_setisr(FAR struct stm32_tim_dev_s *dev,
   int vectorno;
 
   ASSERT(dev);
-  ASSERT(source == 0);
+  //ASSERT(source == 0);
 
   switch (((struct stm32_tim_priv_s *)dev)->base)
     {
@@ -412,7 +412,8 @@ static void stm32_tim_disableint(FAR struct stm32_tim_dev_s *dev, int source)
 
 static void stm32_tim_ackint(FAR struct stm32_tim_dev_s *dev, int source)
 {
-  stm32_putreg16(dev, STM32_BTIM_SR_OFFSET, ~ATIM_SR_UIF);
+  //stm32_putreg16(dev, STM32_BTIM_SR_OFFSET, ~ATIM_SR_UIF);
+  stm32_putreg16(dev,STM32_BTIM_SR_OFFSET,~(1<<source));
 }
 
 /************************************************************************************

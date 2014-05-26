@@ -75,6 +75,18 @@
  * Public Types
  ************************************************************************************/
 typedef struct {
+  int length;
+  int high;
+} pwm_param;
+
+#define MAX_PARAM_CNT  (50)
+
+typedef struct {
+  int count;
+  pwm_param data[MAX_PARAM_CNT];
+} relay_param;
+
+typedef struct {
   char  *name;
   int    channel; 
   xcpt_t isr;
