@@ -415,6 +415,13 @@ static const struct cmdmap_s g_cmdmap[] =
   { "xd",       cmd_xd,       3, 3, "<hex-address> <byte-count>" },
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_SUPER_SWITCH
+  { "relay", cmd_relay, 4,5,"<ID> < msec of total period> < msec of relay high period>" },
+  { "sync_relay",cmd_sync_relay,5,5, "<total period of A> <high period of A> <total period of B> <high period of B>"},
+  { "relay_param", cmd_relay_param,5,5,"<ID> <index> <length> <high>"},
+  { "relay_intr", cmd_relay_intr,3,3,"<ID> <count>"},
+#endif
+  
   { NULL,       NULL,         1, 1, NULL }
 };
 

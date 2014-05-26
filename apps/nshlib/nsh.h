@@ -893,5 +893,12 @@ void nsh_usbtrace(void);
       int cmd_urldecode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
 #endif
+      
+#ifdef CONFIG_ARCH_BOARD_SUPER_SWITCH
+  int cmd_relay(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+  int cmd_sync_relay(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+  int cmd_relay_param(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+  int cmd_relay_intr(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#endif
 
 #endif /* __APPS_NSHLIB_NSH_H */
