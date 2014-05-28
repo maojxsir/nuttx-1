@@ -239,7 +239,7 @@ static void ficlPrimitiveExitCoIm(ficlVm *vm)
 #if FICL_WANT_LOCALS
     if (vm->callback.system->localsCount > 0)
     {
-		ficlDictionaryAppendUnsigned(dictionary, ficlInstructionUnlinkParen);
+    ficlDictionaryAppendUnsigned(dictionary, ficlInstructionUnlinkParen);
     }
 #endif
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionExitParen);
@@ -261,7 +261,7 @@ static void ficlPrimitiveConstant(ficlVm *vm)
 
     FICL_STACK_CHECK(vm->dataStack, 1, 0);
 
-	ficlDictionaryAppendConstantInstruction(dictionary, name, ficlInstructionConstantParen, ficlStackPopInteger(vm->dataStack));
+  ficlDictionaryAppendConstantInstruction(dictionary, name, ficlInstructionConstantParen, ficlStackPopInteger(vm->dataStack));
     return;
 }
 
@@ -273,7 +273,7 @@ static void ficlPrimitive2Constant(ficlVm *vm)
     
     FICL_STACK_CHECK(vm->dataStack, 2, 0);
 
-	ficlDictionaryAppend2ConstantInstruction(dictionary, name, ficlInstruction2ConstantParen, ficlStackPop2Integer(vm->dataStack));
+  ficlDictionaryAppend2ConstantInstruction(dictionary, name, ficlInstruction2ConstantParen, ficlStackPop2Integer(vm->dataStack));
     return;
 }
 
@@ -334,10 +334,10 @@ static void ficlPrimitiveHexDot(ficlVm *vm)
 ** --lch
 **/
 static void ficlPrimitiveStrlen(ficlVm *vm)
-	{
-	char *address = (char *)ficlStackPopPointer(vm->dataStack);
-	ficlStackPushInteger(vm->dataStack, strlen(address));
-	}
+  {
+  char *address = (char *)ficlStackPopPointer(vm->dataStack);
+  ficlStackPushInteger(vm->dataStack, strlen(address));
+  }
 
 
 /**************************************************************************
@@ -367,127 +367,127 @@ static void ficlPrimitiveStrlen(ficlVm *vm)
 **************************************************************************/
 static void ficlPrimitiveSprintf(ficlVm *vm) /*  */
 {
-	int bufferLength = ficlStackPopInteger(vm->dataStack);
-	char *buffer = (char *)ficlStackPopPointer(vm->dataStack);
-	char *bufferStart = buffer;
+  int bufferLength = ficlStackPopInteger(vm->dataStack);
+  char *buffer = (char *)ficlStackPopPointer(vm->dataStack);
+  char *bufferStart = buffer;
 
-	int formatLength = ficlStackPopInteger(vm->dataStack);
-	char *format = (char *)ficlStackPopPointer(vm->dataStack);
-	char *formatStop = format + formatLength;
+  int formatLength = ficlStackPopInteger(vm->dataStack);
+  char *format = (char *)ficlStackPopPointer(vm->dataStack);
+  char *formatStop = format + formatLength;
 
-	int base = 10;
-	int unsignedInteger = 0; /* false */
+  int base = 10;
+  int unsignedInteger = 0; /* false */
 
-	int append = 1; /* true */
+  int append = 1; /* true */
 
-	while (format < formatStop)
-	{
-		char scratch[64];
-		char *source;
-		int actualLength;
-		int desiredLength;
-		int leadingZeroes;
-
-
-		if (*format != '%')
-		{
-			source = format;
-			actualLength = desiredLength = 1;
-			leadingZeroes = 0;
-		}
-		else
-		{
-			format++;
-			if (format == formatStop)
-				break;
-
-			leadingZeroes = (*format == '0');
-			if (leadingZeroes)
-				{
-				format++;
-				if (format == formatStop)
-					break;
-				}
-
-			desiredLength = isdigit((unsigned char)*format);
-			if (desiredLength)
-				{
-				desiredLength = strtoul(format, &format, 10);
-				if (format == formatStop)
-					break;
-				}
-			else if (*format == '*')
-				{
-				desiredLength = ficlStackPopInteger(vm->dataStack);
-				format++;
-				if (format == formatStop)
-					break;
-				}
+  while (format < formatStop)
+  {
+    char scratch[64];
+    char *source;
+    int actualLength;
+    int desiredLength;
+    int leadingZeroes;
 
 
-			switch (*format)
-			{
-				case 's':
-				case 'S':
-				{
-					actualLength = ficlStackPopInteger(vm->dataStack);
-					source = (char *)ficlStackPopPointer(vm->dataStack);
-					break;
-				}
-				case 'x':
-				case 'X':
-					base = 16;
-				case 'u':
-				case 'U':
-					unsignedInteger = 1; /* true */
-				case 'd':
-				case 'D':
-				{
-					int integer = ficlStackPopInteger(vm->dataStack);
-					if (unsignedInteger)
-						ficlUltoa(integer, scratch, base);
-					else
-						ficlLtoa(integer, scratch, base);
-					base = 10;
-					unsignedInteger = 0; /* false */
-					source = scratch;
-					actualLength = strlen(scratch);
-					break;
-				}
-				case '%':
-					source = format;
-					actualLength = 1;
-				default:
-					continue;
-			}
-		}
+    if (*format != '%')
+    {
+      source = format;
+      actualLength = desiredLength = 1;
+      leadingZeroes = 0;
+    }
+    else
+    {
+      format++;
+      if (format == formatStop)
+        break;
 
-		if (append)
-		{
-			if (!desiredLength)
-				desiredLength = actualLength;
-			if (desiredLength > bufferLength)
-			{
-				append = 0; /* false */
-				desiredLength = bufferLength;
-			}
-			while (desiredLength > actualLength)
-				{
-				*buffer++ = (char)((leadingZeroes) ? '0' : ' ');
-				bufferLength--;
-				desiredLength--;
-				}
-			memcpy(buffer, source, actualLength);
-			buffer += actualLength;
-			bufferLength -= actualLength;
-		}
+      leadingZeroes = (*format == '0');
+      if (leadingZeroes)
+        {
+        format++;
+        if (format == formatStop)
+          break;
+        }
 
-		format++;
-	}
+      desiredLength = isdigit((unsigned char)*format);
+      if (desiredLength)
+        {
+        desiredLength = strtoul(format, &format, 10);
+        if (format == formatStop)
+          break;
+        }
+      else if (*format == '*')
+        {
+        desiredLength = ficlStackPopInteger(vm->dataStack);
+        format++;
+        if (format == formatStop)
+          break;
+        }
 
-	ficlStackPushPointer(vm->dataStack, bufferStart);
-	ficlStackPushInteger(vm->dataStack, buffer - bufferStart);
-	ficlStackPushInteger(vm->dataStack, append && FICL_TRUE);
+
+      switch (*format)
+      {
+        case 's':
+        case 'S':
+        {
+          actualLength = ficlStackPopInteger(vm->dataStack);
+          source = (char *)ficlStackPopPointer(vm->dataStack);
+          break;
+        }
+        case 'x':
+        case 'X':
+          base = 16;
+        case 'u':
+        case 'U':
+          unsignedInteger = 1; /* true */
+        case 'd':
+        case 'D':
+        {
+          int integer = ficlStackPopInteger(vm->dataStack);
+          if (unsignedInteger)
+            ficlUltoa(integer, scratch, base);
+          else
+            ficlLtoa(integer, scratch, base);
+          base = 10;
+          unsignedInteger = 0; /* false */
+          source = scratch;
+          actualLength = strlen(scratch);
+          break;
+        }
+        case '%':
+          source = format;
+          actualLength = 1;
+        default:
+          continue;
+      }
+    }
+
+    if (append)
+    {
+      if (!desiredLength)
+        desiredLength = actualLength;
+      if (desiredLength > bufferLength)
+      {
+        append = 0; /* false */
+        desiredLength = bufferLength;
+      }
+      while (desiredLength > actualLength)
+        {
+        *buffer++ = (char)((leadingZeroes) ? '0' : ' ');
+        bufferLength--;
+        desiredLength--;
+        }
+      memcpy(buffer, source, actualLength);
+      buffer += actualLength;
+      bufferLength -= actualLength;
+    }
+
+    format++;
+  }
+
+  ficlStackPushPointer(vm->dataStack, bufferStart);
+  ficlStackPushInteger(vm->dataStack, buffer - bufferStart);
+  ficlStackPushInteger(vm->dataStack, append && FICL_TRUE);
 }
 
 
@@ -659,9 +659,9 @@ static void ficlPrimitiveEndifCoIm(ficlVm *vm)
 **
 **
 ** At FICL_VM_STATE_COMPILE-time, a CASE-SYS (see DPANS94 6.2.0873) looks like this:
-**			i*addr i caseTag
+**      i*addr i caseTag
 ** and an OF-SYS (see DPANS94 6.2.1950) looks like this:
-**			i*addr i caseTag addr ofTag
+**      i*addr i caseTag addr ofTag
 ** The integer under caseTag is the count of fixup addresses that branch
 ** to ENDCASE.
 **************************************************************************/
@@ -670,8 +670,8 @@ static void ficlPrimitiveCaseCoIm(ficlVm *vm)
 {
     FICL_STACK_CHECK(vm->dataStack, 0, 2);
 
-	ficlStackPushUnsigned(vm->dataStack, 0);
-	markControlTag(vm, caseTag);
+  ficlStackPushUnsigned(vm->dataStack, 0);
+  markControlTag(vm, caseTag);
     return;
 }
 
@@ -683,44 +683,44 @@ static void ficlPrimitiveCaseCoIm(ficlVm *vm)
 
 static void ficlPrimitiveEndcaseCoIm(ficlVm *vm)
 {
-	ficlUnsigned fixupCount;
+  ficlUnsigned fixupCount;
     ficlDictionary *dictionary;
     ficlCell *patchAddr;
     ficlInteger offset;
 
-	/*
-	** if the last OF ended with FALLTHROUGH,
-	** just add the FALLTHROUGH fixup to the
-	** ENDOF fixups
-	*/
-	if (ficlStackGetTop(vm->dataStack).p == fallthroughTag)
-	{
-		matchControlTag(vm, fallthroughTag);
-		patchAddr = ficlStackPopPointer(vm->dataStack);
-	    matchControlTag(vm, caseTag);
-		fixupCount = ficlStackPopUnsigned(vm->dataStack);
-		ficlStackPushPointer(vm->dataStack, patchAddr);
-		ficlStackPushUnsigned(vm->dataStack, fixupCount + 1);
-		markControlTag(vm, caseTag);
-	}
+  /*
+  ** if the last OF ended with FALLTHROUGH,
+  ** just add the FALLTHROUGH fixup to the
+  ** ENDOF fixups
+  */
+  if (ficlStackGetTop(vm->dataStack).p == fallthroughTag)
+  {
+    matchControlTag(vm, fallthroughTag);
+    patchAddr = ficlStackPopPointer(vm->dataStack);
+      matchControlTag(vm, caseTag);
+    fixupCount = ficlStackPopUnsigned(vm->dataStack);
+    ficlStackPushPointer(vm->dataStack, patchAddr);
+    ficlStackPushUnsigned(vm->dataStack, fixupCount + 1);
+    markControlTag(vm, caseTag);
+  }
 
     matchControlTag(vm, caseTag);
 
     FICL_STACK_CHECK(vm->dataStack, 1, 0);
 
-	fixupCount = ficlStackPopUnsigned(vm->dataStack);
+  fixupCount = ficlStackPopUnsigned(vm->dataStack);
     FICL_STACK_CHECK(vm->dataStack, fixupCount, 0);
 
     dictionary = ficlVmGetDictionary(vm);
 
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionDrop);
 
-	while (fixupCount--)
-	{
-		patchAddr = (ficlCell *)ficlStackPopPointer(vm->dataStack);
-		offset = dictionary->here - patchAddr;
-		*patchAddr = FICL_LVALUE_TO_CELL(offset);
-	}
+  while (fixupCount--)
+  {
+    patchAddr = (ficlCell *)ficlStackPopPointer(vm->dataStack);
+    offset = dictionary->here - patchAddr;
+    *patchAddr = FICL_LVALUE_TO_CELL(offset);
+  }
     return;
 }
 
@@ -733,29 +733,29 @@ static void ficlPrimitiveEndcaseCoIm(ficlVm *vm)
 static void ficlPrimitiveOfCoIm(ficlVm *vm)
 {
     ficlDictionary *dictionary = ficlVmGetDictionary(vm);
-	ficlCell *fallthroughFixup = NULL;
+  ficlCell *fallthroughFixup = NULL;
 
     FICL_STACK_CHECK(vm->dataStack, 1, 3);
 
-	if (ficlStackGetTop(vm->dataStack).p == fallthroughTag)
-	{
-		matchControlTag(vm, fallthroughTag);
-		fallthroughFixup = ficlStackPopPointer(vm->dataStack);
-	}
+  if (ficlStackGetTop(vm->dataStack).p == fallthroughTag)
+  {
+    matchControlTag(vm, fallthroughTag);
+    fallthroughFixup = ficlStackPopPointer(vm->dataStack);
+  }
 
-	matchControlTag(vm, caseTag);
+  matchControlTag(vm, caseTag);
 
-	markControlTag(vm, caseTag);
+  markControlTag(vm, caseTag);
 
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionOfParen);
     markBranch(dictionary, vm, ofTag);
     ficlDictionaryAppendUnsigned(dictionary, 2);
 
-	if (fallthroughFixup != NULL)
-	{
-		ficlInteger offset = dictionary->here - fallthroughFixup;
-		*fallthroughFixup = FICL_LVALUE_TO_CELL(offset);
-	}
+  if (fallthroughFixup != NULL)
+  {
+    ficlInteger offset = dictionary->here - fallthroughFixup;
+    *fallthroughFixup = FICL_LVALUE_TO_CELL(offset);
+  }
 
     return;
 }
@@ -775,27 +775,27 @@ static void ficlPrimitiveEndofCoIm(ficlVm *vm)
 
     FICL_STACK_CHECK(vm->dataStack, 4, 3);
 
-	/* ensure we're in an OF, */
+  /* ensure we're in an OF, */
     matchControlTag(vm, ofTag);
-	/* grab the address of the branch location after the OF */
+  /* grab the address of the branch location after the OF */
     patchAddr = (ficlCell *)ficlStackPopPointer(vm->dataStack);
-	/* ensure we're also in a "case" */
+  /* ensure we're also in a "case" */
     matchControlTag(vm, caseTag);
-	/* grab the current number of ENDOF fixups */
-	fixupCount = ficlStackPopUnsigned(vm->dataStack);
+  /* grab the current number of ENDOF fixups */
+  fixupCount = ficlStackPopUnsigned(vm->dataStack);
 
     /* FICL_VM_STATE_COMPILE branch runtime */
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionBranchParenWithCheck);
 
-	/* push a new ENDOF fixup, the updated count of ENDOF fixups, and the caseTag */
+  /* push a new ENDOF fixup, the updated count of ENDOF fixups, and the caseTag */
     ficlStackPushPointer(vm->dataStack, dictionary->here);
     ficlStackPushUnsigned(vm->dataStack, fixupCount + 1);
-	markControlTag(vm, caseTag);
+  markControlTag(vm, caseTag);
 
-	/* reserve space for the ENDOF fixup */
+  /* reserve space for the ENDOF fixup */
     ficlDictionaryAppendUnsigned(dictionary, 2);
 
-	/* and patch the original OF */
+  /* and patch the original OF */
     offset = dictionary->here - patchAddr;
     *patchAddr = FICL_LVALUE_TO_CELL(offset);
 }
@@ -813,27 +813,27 @@ static void ficlPrimitiveFallthroughCoIm(ficlVm *vm)
 
     FICL_STACK_CHECK(vm->dataStack, 4, 3);
 
-	/* ensure we're in an OF, */
+  /* ensure we're in an OF, */
     matchControlTag(vm, ofTag);
-	/* grab the address of the branch location after the OF */
+  /* grab the address of the branch location after the OF */
     patchAddr = (ficlCell *)ficlStackPopPointer(vm->dataStack);
-	/* ensure we're also in a "case" */
+  /* ensure we're also in a "case" */
     matchControlTag(vm, caseTag);
 
-	/* okay, here we go.  put the case tag back. */
-	markControlTag(vm, caseTag);
+  /* okay, here we go.  put the case tag back. */
+  markControlTag(vm, caseTag);
 
     /* FICL_VM_STATE_COMPILE branch runtime */
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionBranchParenWithCheck);
 
-	/* push a new FALLTHROUGH fixup and the fallthroughTag */
+  /* push a new FALLTHROUGH fixup and the fallthroughTag */
     ficlStackPushPointer(vm->dataStack, dictionary->here);
-	markControlTag(vm, fallthroughTag);
+  markControlTag(vm, fallthroughTag);
 
-	/* reserve space for the FALLTHROUGH fixup */
+  /* reserve space for the FALLTHROUGH fixup */
     ficlDictionaryAppendUnsigned(dictionary, 2);
 
-	/* and patch the original OF */
+  /* and patch the original OF */
     offset = dictionary->here - patchAddr;
     *patchAddr = FICL_LVALUE_TO_CELL(offset);
 }
@@ -989,56 +989,56 @@ static void ficlPrimitiveAddParseStep(ficlVm *vm)
 void ficlPrimitiveLiteralIm(ficlVm *vm)
 {
     ficlDictionary *dictionary = ficlVmGetDictionary(vm);
-	ficlInteger value;
+  ficlInteger value;
 
-	value = ficlStackPopInteger(vm->dataStack);
+  value = ficlStackPopInteger(vm->dataStack);
 
-	switch (value)
-	{
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-		case 10:
-		case 11:
-		case 12:
-		case 13:
-		case 14:
-		case 15:
-		case 16:
-			ficlDictionaryAppendUnsigned(dictionary, value);
-			break;
+  switch (value)
+  {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+      ficlDictionaryAppendUnsigned(dictionary, value);
+      break;
 
-		case 0:
-		case -1:
-		case -2:
-		case -3:
-		case -4:
-		case -5:
-		case -6:
-		case -7:
-		case -8:
-		case -9:
-		case -10:
-		case -11:
-		case -12:
-		case -13:
-		case -14:
-		case -15:
-		case -16:
-			ficlDictionaryAppendUnsigned(dictionary, ficlInstruction0- value);
-			break;
+    case 0:
+    case -1:
+    case -2:
+    case -3:
+    case -4:
+    case -5:
+    case -6:
+    case -7:
+    case -8:
+    case -9:
+    case -10:
+    case -11:
+    case -12:
+    case -13:
+    case -14:
+    case -15:
+    case -16:
+      ficlDictionaryAppendUnsigned(dictionary, ficlInstruction0- value);
+      break;
 
-		default:
-			ficlDictionaryAppendUnsigned(dictionary, ficlInstructionLiteralParen);
-			ficlDictionaryAppendUnsigned(dictionary, value);
-			break;
-	}
+    default:
+      ficlDictionaryAppendUnsigned(dictionary, ficlInstructionLiteralParen);
+      ficlDictionaryAppendUnsigned(dictionary, value);
+      break;
+  }
 
     return;
 }
@@ -1369,8 +1369,8 @@ static void ficlPrimitiveCountedStringQuoteIm(ficlVm *vm)
         ficlCountedString *counted = (ficlCountedString *) dictionary->here;
         ficlVmGetString(vm, counted, '\"');
         ficlStackPushPointer(vm->dataStack, counted);
-		/* move HERE past string so it doesn't get overwritten.  --lch */
-		ficlVmDictionaryAllot(vm, dictionary, counted->length + sizeof(ficlUnsigned8));
+    /* move HERE past string so it doesn't get overwritten.  --lch */
+    ficlVmDictionaryAllot(vm, dictionary, counted->length + sizeof(ficlUnsigned8));
     }
     else    /* FICL_VM_STATE_COMPILE state */
     {
@@ -1441,7 +1441,7 @@ static void ficlPrimitiveSLiteralCoIm(ficlVm *vm)
 {
     ficlDictionary *dictionary;
     char *from;
-	char *to;
+  char *to;
     ficlUnsigned length;
 
     FICL_STACK_CHECK(vm->dataStack, 2, 0);
@@ -1677,7 +1677,7 @@ static void ficlPrimitiveNumberSignS(ficlVm *vm)
     {
         uqr = ficl2UnsignedDivide(u, (ficlUnsigned16)(vm->base));
         counted->text[counted->length++] = ficlDigitToCharacter(uqr.remainder);
-		u = uqr.quotient;
+    u = uqr.quotient;
     }
     while (FICL_2UNSIGNED_NOT_ZERO(u));
 
@@ -1834,9 +1834,9 @@ static void ficlPrimitiveAccept(ficlVm *vm)
     ficlUnsigned size;
     char *address;
 
-	ficlUnsigned length;
-	char *trace;
-	char *end;
+  ficlUnsigned length;
+  char *trace;
+  char *end;
 
     FICL_STACK_CHECK(vm->dataStack, 2, 1);
 
@@ -1927,7 +1927,7 @@ static void ficlPrimitiveWhileCoIm(ficlVm *vm)
     ficlDictionaryAppendUnsigned(dictionary, ficlInstructionBranch0ParenWithCheck);
     markBranch(dictionary, vm, origTag);
 
-	/* equivalent to 2swap */
+  /* equivalent to 2swap */
     ficlStackRoll(vm->dataStack, 3);
     ficlStackRoll(vm->dataStack, 3);
 
@@ -2112,7 +2112,7 @@ static void ficlPrimitiveEvaluate(ficlVm *vm)
 {
     ficlCell id;
     int result;
-	ficlString string;
+  ficlString string;
 
     FICL_STACK_CHECK(vm->dataStack,2,0);
 
@@ -2152,7 +2152,7 @@ static void ficlPrimitiveStringQuoteIm(ficlVm *vm)
     }
     else    /* FICL_VM_STATE_COMPILE state */
     {
-	    ficlDictionaryAppendUnsigned(dictionary, ficlInstructionStringLiteralParen);
+      ficlDictionaryAppendUnsigned(dictionary, ficlInstructionStringLiteralParen);
         dictionary->here = FICL_POINTER_TO_CELL(ficlVmGetString(vm, (ficlCountedString *)dictionary->here, '\"'));
         ficlDictionaryAlign(dictionary);
     }
@@ -2175,9 +2175,9 @@ static void ficlPrimitiveType(ficlVm *vm)
 
     length = ficlStackPopUnsigned(vm->dataStack);
     s = ficlStackPopPointer(vm->dataStack);
-	
-	if ((s == NULL) || (length == 0))
-		return;
+  
+  if ((s == NULL) || (length == 0))
+    return;
 
     /* 
     ** Since we don't have an output primitive for a counted string
@@ -2231,7 +2231,7 @@ static void ficlPrimitiveWord(ficlVm *vm)
     counted->length = (ficlUnsigned8)FICL_STRING_GET_LENGTH(name);
     strncpy(counted->text, FICL_STRING_GET_POINTER(name), FICL_STRING_GET_LENGTH(name));
 
-	/* store an extra space at the end of the primitive... why? dunno yet.  Guy Carver did it. */
+  /* store an extra space at the end of the primitive... why? dunno yet.  Guy Carver did it. */
     counted->text[counted->length] = ' ';
     counted->text[counted->length + 1] = 0;
 
@@ -2494,56 +2494,56 @@ void ficlLocalParenIm(ficlVm *vm, int isDouble, int isFloat)
     ficlInteger nLocal = vm->runningWord->param[0].i;
 
 #if !FICL_WANT_FLOAT
-	FICL_VM_ASSERT(vm, !isFloat);
-	/* get rid of unused parameter warning */
-	isFloat = 0;
+  FICL_VM_ASSERT(vm, !isFloat);
+  /* get rid of unused parameter warning */
+  isFloat = 0;
 #endif /* FICL_WANT_FLOAT */
 
     if (vm->state == FICL_VM_STATE_INTERPRET)
     {
-		ficlStack *stack;
+    ficlStack *stack;
 #if FICL_WANT_FLOAT
-		if (isFloat)
-			stack = vm->floatStack;
-		else
+    if (isFloat)
+      stack = vm->floatStack;
+    else
 #endif /* FICL_WANT_FLOAT */
-		stack = vm->dataStack;
+    stack = vm->dataStack;
 
         ficlStackPush(stack, vm->returnStack->frame[nLocal]);
-		if (isDouble)
+    if (isDouble)
             ficlStackPush(stack, vm->returnStack->frame[nLocal+1]);
     }
     else
     {
-		ficlInstruction instruction;
-		ficlInteger appendLocalOffset;
+    ficlInstruction instruction;
+    ficlInteger appendLocalOffset;
 #if FICL_WANT_FLOAT
         if (isFloat)
-		{
-			instruction = (isDouble) ? ficlInstructionGetF2LocalParen : ficlInstructionGetFLocalParen;
-			appendLocalOffset = FICL_TRUE;
-		}
-		else
+    {
+      instruction = (isDouble) ? ficlInstructionGetF2LocalParen : ficlInstructionGetFLocalParen;
+      appendLocalOffset = FICL_TRUE;
+    }
+    else
 #endif /* FICL_WANT_FLOAT */
-		if (nLocal == 0)
-		{
-			instruction = (isDouble) ? ficlInstructionGet2Local0 : ficlInstructionGetLocal0;
-			appendLocalOffset = FICL_FALSE;
-		}
-		else if ((nLocal == 1) && !isDouble)
-		{
-			instruction = ficlInstructionGetLocal1;
-			appendLocalOffset = FICL_FALSE;
-		}
-		else
-		{
-			instruction = (isDouble) ? ficlInstructionGet2LocalParen : ficlInstructionGetLocalParen;
-			appendLocalOffset = FICL_TRUE;
-		}
+    if (nLocal == 0)
+    {
+      instruction = (isDouble) ? ficlInstructionGet2Local0 : ficlInstructionGetLocal0;
+      appendLocalOffset = FICL_FALSE;
+    }
+    else if ((nLocal == 1) && !isDouble)
+    {
+      instruction = ficlInstructionGetLocal1;
+      appendLocalOffset = FICL_FALSE;
+    }
+    else
+    {
+      instruction = (isDouble) ? ficlInstructionGet2LocalParen : ficlInstructionGetLocalParen;
+      appendLocalOffset = FICL_TRUE;
+    }
 
-		ficlDictionaryAppendUnsigned(dictionary, instruction);
-		if (appendLocalOffset)
-			ficlDictionaryAppendCell(dictionary, FICL_LVALUE_TO_CELL(nLocal));
+    ficlDictionaryAppendUnsigned(dictionary, instruction);
+    if (appendLocalOffset)
+      ficlDictionaryAppendCell(dictionary, FICL_LVALUE_TO_CELL(nLocal));
     }
     return;
 }
@@ -2610,7 +2610,7 @@ void ficlLocalParen(ficlVm *vm, int isDouble, int isFloat)
     if (FICL_STRING_GET_LENGTH(name) > 0)
     {   /* add a local to the **locals** dictionary and update localsCount */
         ficlPrimitive code;
-		ficlInstruction instruction;
+    ficlInstruction instruction;
         ficlDictionary *locals = ficlSystemGetLocals(vm->callback.system);
         if (vm->callback.system->localsCount >= FICL_MAX_LOCALS)
         {
@@ -2618,35 +2618,35 @@ void ficlLocalParen(ficlVm *vm, int isDouble, int isFloat)
         }
 
 #if !FICL_WANT_FLOAT
-		FICL_VM_ASSERT(vm, !isFloat);
-		/* get rid of unused parameter warning */
-		isFloat = 0;
+    FICL_VM_ASSERT(vm, !isFloat);
+    /* get rid of unused parameter warning */
+    isFloat = 0;
 #else /* FICL_WANT_FLOAT */
-		if (isFloat)
-		{
-			if (isDouble)
-			{
-				code = ficlPrimitiveDoF2LocalIm;
-				instruction = ficlInstructionToF2LocalParen;
-			}
-			else
-			{
-				code = ficlPrimitiveDoFLocalIm;
-				instruction = ficlInstructionToFLocalParen;
-			}
-		}
-		else
+    if (isFloat)
+    {
+      if (isDouble)
+      {
+        code = ficlPrimitiveDoF2LocalIm;
+        instruction = ficlInstructionToF2LocalParen;
+      }
+      else
+      {
+        code = ficlPrimitiveDoFLocalIm;
+        instruction = ficlInstructionToFLocalParen;
+      }
+    }
+    else
 #endif /* FICL_WANT_FLOAT */
         if (isDouble)
-		{
-			code = ficlPrimitiveDo2LocalIm;
-			instruction = ficlInstructionTo2LocalParen;
-		}
-		else
-		{
-			code = ficlPrimitiveDoLocalIm;
-			instruction = ficlInstructionToLocalParen;
-		}
+    {
+      code = ficlPrimitiveDo2LocalIm;
+      instruction = ficlInstructionTo2LocalParen;
+    }
+    else
+    {
+      code = ficlPrimitiveDoLocalIm;
+      instruction = ficlInstructionToLocalParen;
+    }
 
         ficlDictionaryAppendWord(locals, name, code, FICL_WORD_COMPILE_ONLY_IMMEDIATE);
         ficlDictionaryAppendCell(locals,  FICL_LVALUE_TO_CELL(vm->callback.system->localsCount));
@@ -2701,13 +2701,13 @@ static void ficlPrimitiveToValue(ficlVm *vm)
     ficlString name = ficlVmGetWord(vm);
     ficlDictionary *dictionary = ficlVmGetDictionary(vm);
     ficlWord *word;
-	ficlInstruction instruction = 0;
-	ficlStack *stack;
-	ficlInteger isDouble;
+  ficlInstruction instruction = 0;
+  ficlStack *stack;
+  ficlInteger isDouble;
 #if FICL_WANT_LOCALS
-	ficlInteger nLocal;
-	ficlInteger appendLocalOffset;
-	ficlInteger isFloat;
+  ficlInteger nLocal;
+  ficlInteger appendLocalOffset;
+  ficlInteger isFloat;
 #endif /* FICL_WANT_LOCALS */
 
 #if FICL_WANT_LOCALS
@@ -2717,63 +2717,63 @@ static void ficlPrimitiveToValue(ficlVm *vm)
 
         locals = ficlSystemGetLocals(vm->callback.system);
         word = ficlDictionaryLookup(locals, name);
-		if (!word)
-			goto TO_GLOBAL;
+    if (!word)
+      goto TO_GLOBAL;
 
-		if (word->code == ficlPrimitiveDoLocalIm)
-		{
-			instruction = ficlInstructionToLocalParen;
-			isDouble = isFloat = FICL_FALSE;
-		}
-		else if (word->code == ficlPrimitiveDo2LocalIm)
-		{
-			instruction = ficlInstructionTo2LocalParen;
-			isDouble = FICL_TRUE;
-			isFloat = FICL_FALSE;
-		}
+    if (word->code == ficlPrimitiveDoLocalIm)
+    {
+      instruction = ficlInstructionToLocalParen;
+      isDouble = isFloat = FICL_FALSE;
+    }
+    else if (word->code == ficlPrimitiveDo2LocalIm)
+    {
+      instruction = ficlInstructionTo2LocalParen;
+      isDouble = FICL_TRUE;
+      isFloat = FICL_FALSE;
+    }
 #if FICL_WANT_FLOAT
-		else if (word->code == ficlPrimitiveDoFLocalIm)
-		{
-			instruction = ficlInstructionToFLocalParen;
-			isDouble = FICL_FALSE;
-			isFloat = FICL_TRUE;
-		}
-		else if (word->code == ficlPrimitiveDoF2LocalIm)
-		{
-			instruction = ficlInstructionToF2LocalParen;
-			isDouble = isFloat = FICL_TRUE;
-		}
+    else if (word->code == ficlPrimitiveDoFLocalIm)
+    {
+      instruction = ficlInstructionToFLocalParen;
+      isDouble = FICL_FALSE;
+      isFloat = FICL_TRUE;
+    }
+    else if (word->code == ficlPrimitiveDoF2LocalIm)
+    {
+      instruction = ficlInstructionToF2LocalParen;
+      isDouble = isFloat = FICL_TRUE;
+    }
 #endif /* FICL_WANT_FLOAT */
-		else
-		{
-			ficlVmThrowError(vm, "to %.*s : local is of unknown type", FICL_STRING_GET_LENGTH(name), FICL_STRING_GET_POINTER(name));
-			return;
-		}
+    else
+    {
+      ficlVmThrowError(vm, "to %.*s : local is of unknown type", FICL_STRING_GET_LENGTH(name), FICL_STRING_GET_POINTER(name));
+      return;
+    }
 
-		nLocal = word->param[0].i;
-		appendLocalOffset = FICL_TRUE;
+    nLocal = word->param[0].i;
+    appendLocalOffset = FICL_TRUE;
 
 #if FICL_WANT_FLOAT
-		if (!isFloat)
-		{
+    if (!isFloat)
+    {
 #endif /* FICL_WANT_FLOAT */
-		if (nLocal == 0)
-		{
-			instruction = (isDouble) ? ficlInstructionTo2Local0 : ficlInstructionToLocal0;
-			appendLocalOffset = FICL_FALSE;
-		}
-		else if ((nLocal == 1) && !isDouble)
-		{
-			instruction = ficlInstructionToLocal1;
-			appendLocalOffset = FICL_FALSE;
-		}
+    if (nLocal == 0)
+    {
+      instruction = (isDouble) ? ficlInstructionTo2Local0 : ficlInstructionToLocal0;
+      appendLocalOffset = FICL_FALSE;
+    }
+    else if ((nLocal == 1) && !isDouble)
+    {
+      instruction = ficlInstructionToLocal1;
+      appendLocalOffset = FICL_FALSE;
+    }
 #if FICL_WANT_FLOAT
-		}
+    }
 #endif /* FICL_WANT_FLOAT */
-		
+    
         ficlDictionaryAppendUnsigned(dictionary, instruction);
-		if (appendLocalOffset)
-			ficlDictionaryAppendCell(dictionary, FICL_LVALUE_TO_CELL(nLocal));
+    if (appendLocalOffset)
+      ficlDictionaryAppendCell(dictionary, FICL_LVALUE_TO_CELL(nLocal));
         return;
     }
 #endif
@@ -2785,43 +2785,43 @@ TO_GLOBAL:
     if (!word)
         ficlVmThrowError(vm, "%.*s not found", FICL_STRING_GET_LENGTH(name), FICL_STRING_GET_POINTER(name));
 
-	switch ((ficlInstruction)word->code)
-	{
-		case ficlInstructionConstantParen:
-			instruction = ficlInstructionStore;
-			stack = vm->dataStack;
-			isDouble = FICL_FALSE;
-			break;
-		case ficlInstruction2ConstantParen:
-			instruction = ficlInstruction2Store;
-			stack = vm->dataStack;
-			isDouble = FICL_TRUE;
-			break;
+  switch ((ficlInstruction)word->code)
+  {
+    case ficlInstructionConstantParen:
+      instruction = ficlInstructionStore;
+      stack = vm->dataStack;
+      isDouble = FICL_FALSE;
+      break;
+    case ficlInstruction2ConstantParen:
+      instruction = ficlInstruction2Store;
+      stack = vm->dataStack;
+      isDouble = FICL_TRUE;
+      break;
 #if FICL_WANT_FLOAT
-		case ficlInstructionFConstantParen:
-			instruction = ficlInstructionFStore;
-			stack = vm->floatStack;
-			isDouble = FICL_FALSE;
-			break;
-		case ficlInstructionF2ConstantParen:
-			instruction = ficlInstructionF2Store;
-			stack = vm->floatStack;
-			isDouble = FICL_TRUE;
-			break;
+    case ficlInstructionFConstantParen:
+      instruction = ficlInstructionFStore;
+      stack = vm->floatStack;
+      isDouble = FICL_FALSE;
+      break;
+    case ficlInstructionF2ConstantParen:
+      instruction = ficlInstructionF2Store;
+      stack = vm->floatStack;
+      isDouble = FICL_TRUE;
+      break;
 #endif /* FICL_WANT_FLOAT */
-		default:
-		{
-		    ficlVmThrowError(vm, "to %.*s : value/constant is of unknown type", FICL_STRING_GET_LENGTH(name), FICL_STRING_GET_POINTER(name));
-		    return;
-		}
-	}
-	
+    default:
+    {
+        ficlVmThrowError(vm, "to %.*s : value/constant is of unknown type", FICL_STRING_GET_LENGTH(name), FICL_STRING_GET_POINTER(name));
+        return;
+    }
+  }
+  
     if (vm->state == FICL_VM_STATE_INTERPRET)
-	{
+  {
         word->param[0] = ficlStackPop(stack);
-		if (isDouble)
-			word->param[1] = ficlStackPop(stack);
-	}
+    if (isDouble)
+      word->param[1] = ficlStackPop(stack);
+  }
     else        /* FICL_VM_STATE_COMPILE code to store to word's param */
     {
         ficlStackPushPointer(vm->dataStack, &word->param[0]);
@@ -2833,7 +2833,7 @@ TO_GLOBAL:
 
 
 /**************************************************************************
-						f m S l a s h M o d
+            f m S l a s h M o d
 ** f-m-slash-mod CORE ( d1 n1 -- n2 n3 )
 ** Divide d1 by n1, giving the floored quotient n3 and the remainder n2.
 ** Input and output stack arguments are signed. An ambiguous condition
@@ -2842,23 +2842,23 @@ TO_GLOBAL:
 **************************************************************************/
 static void ficlPrimitiveFMSlashMod(ficlVm *vm)
 {
-	ficl2Integer d1;
-	ficlInteger n1;
-	ficl2IntegerQR qr;
+  ficl2Integer d1;
+  ficlInteger n1;
+  ficl2IntegerQR qr;
 
-	FICL_STACK_CHECK(vm->dataStack, 3, 2);
+  FICL_STACK_CHECK(vm->dataStack, 3, 2);
 
-	n1 = ficlStackPopInteger(vm->dataStack);
-	d1 = ficlStackPop2Integer(vm->dataStack);
-	qr = ficl2IntegerDivideFloored(d1, n1);
-	ficlStackPushInteger(vm->dataStack, qr.remainder);
-	ficlStackPushInteger(vm->dataStack, FICL_2UNSIGNED_GET_LOW(qr.quotient));
-	return;
+  n1 = ficlStackPopInteger(vm->dataStack);
+  d1 = ficlStackPop2Integer(vm->dataStack);
+  qr = ficl2IntegerDivideFloored(d1, n1);
+  ficlStackPushInteger(vm->dataStack, qr.remainder);
+  ficlStackPushInteger(vm->dataStack, FICL_2UNSIGNED_GET_LOW(qr.quotient));
+  return;
 }
 
 
 /**************************************************************************
-						s m S l a s h R e m
+            s m S l a s h R e m
 ** s-m-slash-remainder CORE ( d1 n1 -- n2 n3 )
 ** Divide d1 by n1, giving the symmetric quotient n3 and the remainder n2.
 ** Input and output stack arguments are signed. An ambiguous condition
@@ -2867,40 +2867,40 @@ static void ficlPrimitiveFMSlashMod(ficlVm *vm)
 **************************************************************************/
 static void ficlPrimitiveSMSlashRem(ficlVm *vm)
 {
-	ficl2Integer d1;
-	ficlInteger n1;
-	ficl2IntegerQR qr;
-	
-	FICL_STACK_CHECK(vm->dataStack, 3, 2);
+  ficl2Integer d1;
+  ficlInteger n1;
+  ficl2IntegerQR qr;
+  
+  FICL_STACK_CHECK(vm->dataStack, 3, 2);
 
-	n1 = ficlStackPopInteger(vm->dataStack);
-	d1 = ficlStackPop2Integer(vm->dataStack);
-	qr = ficl2IntegerDivideSymmetric(d1, n1);
-	ficlStackPushInteger(vm->dataStack, qr.remainder);
-	ficlStackPushInteger(vm->dataStack, FICL_2UNSIGNED_GET_LOW(qr.quotient));
-	return;
+  n1 = ficlStackPopInteger(vm->dataStack);
+  d1 = ficlStackPop2Integer(vm->dataStack);
+  qr = ficl2IntegerDivideSymmetric(d1, n1);
+  ficlStackPushInteger(vm->dataStack, qr.remainder);
+  ficlStackPushInteger(vm->dataStack, FICL_2UNSIGNED_GET_LOW(qr.quotient));
+  return;
 }
 
 
 static void ficlPrimitiveMod(ficlVm *vm)
 {
-	ficl2Integer d1;
-	ficlInteger n1;
-	ficlInteger i;
-	ficl2IntegerQR qr;
-	FICL_STACK_CHECK(vm->dataStack, 2, 1);
+  ficl2Integer d1;
+  ficlInteger n1;
+  ficlInteger i;
+  ficl2IntegerQR qr;
+  FICL_STACK_CHECK(vm->dataStack, 2, 1);
 
-	n1 = ficlStackPopInteger(vm->dataStack);
-	i = ficlStackPopInteger(vm->dataStack);
-	FICL_INTEGER_TO_2INTEGER(i, d1);
-	qr = ficl2IntegerDivideSymmetric(d1, n1);
-	ficlStackPushInteger(vm->dataStack, qr.remainder);
-	return;
+  n1 = ficlStackPopInteger(vm->dataStack);
+  i = ficlStackPopInteger(vm->dataStack);
+  FICL_INTEGER_TO_2INTEGER(i, d1);
+  qr = ficl2IntegerDivideSymmetric(d1, n1);
+  ficlStackPushInteger(vm->dataStack, qr.remainder);
+  return;
 }
 
 
 /**************************************************************************
-						u m S l a s h M o d
+            u m S l a s h M o d
 ** u-m-slash-mod CORE ( ud u1 -- u2 u3 )
 ** Divide ud by u1, giving the quotient u3 and the remainder u2.
 ** All values and arithmetic are unsigned. An ambiguous condition
@@ -2909,69 +2909,69 @@ static void ficlPrimitiveMod(ficlVm *vm)
 *************************************************************************/
 static void ficlPrimitiveUMSlashMod(ficlVm *vm)
 {
-	ficl2Unsigned ud;
-	ficlUnsigned u1;
-	ficl2UnsignedQR uqr;
+  ficl2Unsigned ud;
+  ficlUnsigned u1;
+  ficl2UnsignedQR uqr;
 
-	u1    = ficlStackPopUnsigned(vm->dataStack);
-	ud    = ficlStackPop2Unsigned(vm->dataStack);
-	uqr   = ficl2UnsignedDivide(ud, u1);
-	ficlStackPushUnsigned(vm->dataStack, uqr.remainder);
-	ficlStackPushUnsigned(vm->dataStack, FICL_2UNSIGNED_GET_LOW(uqr.quotient));
-	return;
+  u1    = ficlStackPopUnsigned(vm->dataStack);
+  ud    = ficlStackPop2Unsigned(vm->dataStack);
+  uqr   = ficl2UnsignedDivide(ud, u1);
+  ficlStackPushUnsigned(vm->dataStack, uqr.remainder);
+  ficlStackPushUnsigned(vm->dataStack, FICL_2UNSIGNED_GET_LOW(uqr.quotient));
+  return;
 }
 
 
 
 /**************************************************************************
-						m S t a r
+            m S t a r
 ** m-star CORE ( n1 n2 -- d )
 ** d is the signed product of n1 times n2. 
 **************************************************************************/
 static void ficlPrimitiveMStar(ficlVm *vm)
 {
-	ficlInteger n2;
-	ficlInteger n1;
-	ficl2Integer d;
-	FICL_STACK_CHECK(vm->dataStack, 2, 2);
+  ficlInteger n2;
+  ficlInteger n1;
+  ficl2Integer d;
+  FICL_STACK_CHECK(vm->dataStack, 2, 2);
 
-	n2 = ficlStackPopInteger(vm->dataStack);
-	n1 = ficlStackPopInteger(vm->dataStack);
+  n2 = ficlStackPopInteger(vm->dataStack);
+  n1 = ficlStackPopInteger(vm->dataStack);
 
-	d = ficl2IntegerMultiply(n1, n2);
-	ficlStackPush2Integer(vm->dataStack, d);
-	return;
+  d = ficl2IntegerMultiply(n1, n2);
+  ficlStackPush2Integer(vm->dataStack, d);
+  return;
 }
 
 
 static void ficlPrimitiveUMStar(ficlVm *vm)
 {
-	ficlUnsigned u2;
-	ficlUnsigned u1;
-	ficl2Unsigned ud;
-	FICL_STACK_CHECK(vm->dataStack, 2, 2);
+  ficlUnsigned u2;
+  ficlUnsigned u1;
+  ficl2Unsigned ud;
+  FICL_STACK_CHECK(vm->dataStack, 2, 2);
 
-	u2 = ficlStackPopUnsigned(vm->dataStack);
-	u1 = ficlStackPopUnsigned(vm->dataStack);
+  u2 = ficlStackPopUnsigned(vm->dataStack);
+  u1 = ficlStackPopUnsigned(vm->dataStack);
 
-	ud = ficl2UnsignedMultiply(u1, u2);
-	ficlStackPush2Unsigned(vm->dataStack, ud);
-	return;
+  ud = ficl2UnsignedMultiply(u1, u2);
+  ficlStackPush2Unsigned(vm->dataStack, ud);
+  return;
 }
 
 
 /**************************************************************************
-						d n e g a t e
+            d n e g a t e
 ** DOUBLE   ( d1 -- d2 )
 ** d2 is the negation of d1. 
 **************************************************************************/
 static void ficlPrimitiveDNegate(ficlVm *vm)
 {
-	ficl2Integer i = ficlStackPop2Integer(vm->dataStack);
-	i = ficl2IntegerNegate(i);
-	ficlStackPush2Integer(vm->dataStack, i);
+  ficl2Integer i = ficlStackPop2Integer(vm->dataStack);
+  i = ficl2IntegerNegate(i);
+  ficlStackPush2Integer(vm->dataStack, i);
 
-	return;
+  return;
 }
 
 
@@ -3218,6 +3218,18 @@ static void ficlPrimitiveResize(ficlVm *vm)
     }
 }
 
+/**************************************************************************
+**                     FlashPower Relay operation
+**************************************************************************/
+static void ficlPrimitiveRelay(ficlVm *vm)
+{
+  int volt = 0;
+
+  volt = ficlStackPopInteger(vm->dataStack);
+  printf("+%d\n",volt);
+  setRL(volt);
+  ficlStackPushInteger(vm->dataStack,0);
+}
 
 /**************************************************************************
 **                     e x i t - i n n e r 
@@ -3249,7 +3261,7 @@ static void ficlPrimitiveName(ficlVm *vm)
 
 void ficlSystemCompileCore(ficlSystem *system)
 {
-	ficlWord *interpret;
+  ficlWord *interpret;
     ficlDictionary *dictionary = ficlSystemGetDictionary(system);
     ficlDictionary *environment = ficlSystemGetEnvironment(system);
 
@@ -3257,11 +3269,11 @@ void ficlSystemCompileCore(ficlSystem *system)
     FICL_SYSTEM_ASSERT(system, environment);
 
 
-	#define FICL_TOKEN(token, description) 
-	#define FICL_INSTRUCTION_TOKEN(token, description, flags) ficlDictionarySetInstruction(dictionary, description, token, flags);
-	#include "ficltokens.h"
-	#undef FICL_TOKEN
-	#undef FICL_INSTRUCTION_TOKEN
+  #define FICL_TOKEN(token, description) 
+  #define FICL_INSTRUCTION_TOKEN(token, description, flags) ficlDictionarySetInstruction(dictionary, description, token, flags);
+  #include "ficltokens.h"
+  #undef FICL_TOKEN
+  #undef FICL_INSTRUCTION_TOKEN
 
     /*
     ** The Core word set
@@ -3342,7 +3354,7 @@ void ficlSystemCompileCore(ficlSystem *system)
     ficlDictionarySetPrimitive(dictionary, "[\']",      ficlPrimitiveBracketTickCoIm,FICL_WORD_COMPILE_ONLY_IMMEDIATE);
     ficlDictionarySetPrimitive(dictionary, "[char]",    ficlPrimitiveCharCoIm,       FICL_WORD_COMPILE_ONLY_IMMEDIATE);
     ficlDictionarySetPrimitive(dictionary, "]",         ficlPrimitiveRightBracket,       FICL_WORD_DEFAULT);
-	ficlDictionarySetPrimitive(dictionary, "]",         ficlPrimitiveRightBracket,       FICL_WORD_DEFAULT);
+  ficlDictionarySetPrimitive(dictionary, "]",         ficlPrimitiveRightBracket,       FICL_WORD_DEFAULT);
 
     /* 
     ** The Core Extensions word set...
@@ -3379,13 +3391,13 @@ void ficlSystemCompileCore(ficlSystem *system)
     ficlDictionarySetConstant(environment, "max-char",          UCHAR_MAX);
     ficlDictionarySetConstant(environment, "max-n",             0x7fffffff);
     ficlDictionarySetConstant(environment, "max-u",             0xffffffff);
-	{
-	ficl2Unsigned combined;
-	FICL_2UNSIGNED_SET(INT_MAX, UINT_MAX, combined);
-    ficlDictionarySet2Constant(environment,"max-d",             FICL_2UNSIGNED_TO_2INTEGER(combined));
-	FICL_2UNSIGNED_SET(UINT_MAX, UINT_MAX, combined);
-    ficlDictionarySet2Constant(environment,"max-ud",            FICL_2UNSIGNED_TO_2INTEGER(combined));
-	}
+    {
+      ficl2Unsigned combined;
+      FICL_2UNSIGNED_SET(INT_MAX, UINT_MAX, combined);
+      ficlDictionarySet2Constant(environment,"max-d",             FICL_2UNSIGNED_TO_2INTEGER(combined));
+      FICL_2UNSIGNED_SET(UINT_MAX, UINT_MAX, combined);
+      ficlDictionarySet2Constant(environment,"max-ud",            FICL_2UNSIGNED_TO_2INTEGER(combined));
+    }
     ficlDictionarySetConstant(environment, "return-stack-cells",FICL_DEFAULT_STACK_SIZE);
     ficlDictionarySetConstant(environment, "stack-cells",       FICL_DEFAULT_STACK_SIZE);
 
@@ -3431,7 +3443,10 @@ void ficlSystemCompileCore(ficlSystem *system)
     ficlDictionarySetPrimitive(dictionary, "resize",    ficlPrimitiveResize,      FICL_WORD_DEFAULT);
     
     ficlDictionarySetConstant(environment, "memory-alloc",      FICL_TRUE);
-
+    /*
+     * add by ganling. FlashPower relay operation
+     */
+    ficlDictionarySetPrimitive(dictionary, "relay",    ficlPrimitiveRelay,      FICL_WORD_DEFAULT);
     /*
     ** The optional Search-Order word set 
     */
@@ -3469,9 +3484,9 @@ void ficlSystemCompileCore(ficlSystem *system)
     ficlDictionarySetPrimitive(dictionary, "sliteral",  ficlPrimitiveSLiteralCoIm,   FICL_WORD_COMPILE_ONLY_IMMEDIATE);
     ficlDictionarySetPrimitive(dictionary, "sprintf",   ficlPrimitiveSprintf,    FICL_WORD_DEFAULT);
     ficlDictionarySetPrimitive(dictionary, "strlen",    ficlPrimitiveStrlen,     FICL_WORD_DEFAULT);
-	printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
+  printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
     ficlDictionarySetPrimitive(dictionary, "x.",        ficlPrimitiveHexDot,         FICL_WORD_DEFAULT);
-	printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
+  printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
 #if FICL_WANT_USER
     ficlDictionarySetPrimitive(dictionary, "user",      ficlPrimitiveUser,   FICL_WORD_DEFAULT);
 #endif
@@ -3484,31 +3499,31 @@ void ficlSystemCompileCore(ficlSystem *system)
     ficlDictionarySetPrimitive(dictionary, "lookup",    ficlPrimitiveLookup,         FICL_WORD_DEFAULT);
     ficlDictionarySetPrimitive(dictionary, "(parse-step)", 
                                     ficlPrimitiveParseStepParen, FICL_WORD_DEFAULT);
-	system->exitInnerWord =
+  system->exitInnerWord =
     ficlDictionarySetPrimitive(dictionary, "exit-inner",ficlPrimitiveExitInner,  FICL_WORD_DEFAULT);
 
-	/*
-	** Set constants representing the internal instruction words
-	** If you want all of 'em, turn that "#if 0" to "#if 1".
-	** By default you only get the numbers (fi0, fiNeg1, etc).
-	*/
-	#define FICL_TOKEN(token, description) ficlDictionarySetConstant(dictionary, #token, token);
+  /*
+  ** Set constants representing the internal instruction words
+  ** If you want all of 'em, turn that "#if 0" to "#if 1".
+  ** By default you only get the numbers (fi0, fiNeg1, etc).
+  */
+  #define FICL_TOKEN(token, description) ficlDictionarySetConstant(dictionary, #token, token);
 #if 0
-	#define FICL_INSTRUCTION_TOKEN(token, description, flags) ficlDictionarySetConstant(dictionary, #token, token);
+  #define FICL_INSTRUCTION_TOKEN(token, description, flags) ficlDictionarySetConstant(dictionary, #token, token);
 #else
-	#define FICL_INSTRUCTION_TOKEN(token, description, flags) 
+  #define FICL_INSTRUCTION_TOKEN(token, description, flags) 
 #endif /* 0 */
-	#include "ficltokens.h"
-	#undef FICL_TOKEN
-	#undef FICL_INSTRUCTION_TOKEN
+  #include "ficltokens.h"
+  #undef FICL_TOKEN
+  #undef FICL_INSTRUCTION_TOKEN
 
     /*
     ** Set up system's outer interpreter loop - maybe this should be in initSystem?
     */
-	system->interpreterLoop[0] = interpret;
-	system->interpreterLoop[1] = (ficlWord *)ficlInstructionBranchParen;
-	system->interpreterLoop[2] = (ficlWord *)(void *)(-2);
-	printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
+  system->interpreterLoop[0] = interpret;
+  system->interpreterLoop[1] = (ficlWord *)ficlInstructionBranchParen;
+  system->interpreterLoop[2] = (ficlWord *)(void *)(-2);
+  printf("##DictCellUsed:%d \n",ficlDictionaryCellsUsed(dictionary));
 
     FICL_SYSTEM_ASSERT(system, ficlDictionaryCellsAvailable(dictionary) > 0);
 
