@@ -56,18 +56,18 @@
                             GPIO_OUTPUT_CLEAR|GPIO_PORTE | GPIO_PIN2)
 
 #define GPIO_RL2V          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-	                           GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN3)
+                             GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN3)
 #define GPIO_RL4V          (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN4)
+                              GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN4)
 #define GPIO_RL8V          (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN5)
+                              GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN5)
 #define GPIO_RL16V         (GPIO_OUTPUT |GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-	                            GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN6)	  
-	                            
+                              GPIO_OUTPUT_CLEAR | GPIO_PORTE | GPIO_PIN6)   
+                              
 #define GPIO_OUT_EN        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-	                               GPIO_OUTPUT_SET | GPIO_PORTC | GPIO_PIN15)
+                                 GPIO_OUTPUT_CLEAR | GPIO_PORTC | GPIO_PIN15)
 #define GPIO_AC_OV         (GPIO_INPUT | GPIO_FLOAT | GPIO_PUSHPULL | \
-	                               GPIO_SPEED_50MHz | GPIO_PORTB | GPIO_PIN6)
+                                 GPIO_SPEED_50MHz | GPIO_PORTB | GPIO_PIN6)
 
 #define GPIO_OTGFS_VBUS    (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 #define GPIO_OTGFS_PWRON   (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN7)

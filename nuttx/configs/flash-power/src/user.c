@@ -34,6 +34,7 @@
 #define  T_FAN_OFF  (45.0)
 #define  T_HOTDOWN  (80.0)
 
+#if 0
 struct cali_data {
   uint16_t min;
   uint16_t max;
@@ -103,6 +104,7 @@ static int display_bcd(int id,uint32_t value,bool dot,int count)
   }
   return cf_display_buffer(id,disp,count);
 }
+#endif
 
 void inline RL2V(bool on)
 {
@@ -140,7 +142,7 @@ void inline RL16V(bool on)
   }
 }
 
-void setRL(float value)
+void setRL(int value)
 {
 #if 1
   //close all RL
@@ -148,28 +150,33 @@ void setRL(float value)
   RL4V(false);
   RL8V(false);
   RL16V(false);
-    
+  
+  printf("-%d\n",value);
   value = (value / 1.2 ) + 2 + 2; //一个2V是整流桥消耗压降，另一个2V是增加的电压差，因为市电有波动，得留出足够的余量来保证正常稳压
-    
+  printf("#%d\n",value);
   if(value >= 16) {
     value = value - 16;
+    printf("Open 16V\n");
     RL16V(true);
   }
   if(value >= 8) {
     value = value - 8;
+    printf("Open 8V\n");
     RL8V(true);
   }
   if(value >= 4) {
     value = value - 4;
+    printf("Open 4V\n");
     RL4V(true);
   }
   if(value >= 2) {
     value = value - 2;
+    printf("Open 2V\n");
     RL2V(true);
   }
 #endif
 }
-
+# if 0
 static int dac_set_volt(float value)
 {
   float temp;
@@ -590,3 +597,4 @@ static cf_disp_key_task(int argc, char **argv)
   // bring up ficl
   ficl_main(argc,argv);
 }
+#endif

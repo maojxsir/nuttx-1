@@ -157,10 +157,15 @@
 #endif
 
 #ifdef HAVE_DMA
-#  define  DACIOC_DMA_SETUP   _ANIOC(0xF0)
-#  define  DACIOC_DMA_START   _ANIOC(0xF1)
-#  define  DACIOC_DMA_STOP    _ANIOC(0xF2)
-#  define  DACIOC_DMA_GETPTR  _ANIOC(0xF3)
+#  define  DACIOC_DMA_SETUP      _ANIOC(0xF0)
+#  define  DACIOC_DMA_START      _ANIOC(0xF1)
+#  define  DACIOC_DMA_STOP       _ANIOC(0xF2)
+#  define  DACIOC_DMA_GETPTR     _ANIOC(0xF3)
+#  define  DACIOC_DMA_SETAMP     _ANIOC(0xF4)
+#  define  DACIOC_DMA_SETOFFSET  _ANIOC(0xF5)
+#  define  DACIOC_DMA_SETFREQ    _ANIOC(0xF6)
+#  define  DACIOC_DMA_SETWAVE    _ANIOC(0xF7)
+#  define  DACIOC_DMA_SETENABLE  _ANIOC(0xF8)
 #endif
 
 /* Timer configuration.  The STM32 supports 8 different trigger for DAC
@@ -835,6 +840,30 @@ static int  dac_ioctl(FAR struct dac_dev_s *dev, int cmd, unsigned long arg)
     *(uint32_t*)arg = &chan->dmabuffer;
     break;
 
+  case DACIOC_DMA_SETAMP:
+    stm32_dac_modify_cr(chan,DAC_CR_MAMP_MASK,(arg&0xF)<<DAC_CR_MAMP_SHIFT);
+    break;
+  case DACIOC_DMA_SETOFFSET:
+    if (chan->intf == 0) {
+      putreg16(arg,STM32_DAC_DHR12R1);
+    } else {
+      putreg16(arg,STM32_DAC_DHR12R2);
+    }
+    break;
+  case DACIOC_DMA_SETFREQ:
+    chan->tfrequency = arg;
+    dac_timinit(chan);
+    break;
+  case DACIOC_DMA_SETWAVE:
+    stm32_dac_modify_cr(chan,DAC_CR_WAVE_MASK,(arg&0x3)<<DAC_CR_WAVE_SHIFT);
+    break;
+  case DACIOC_DMA_SETENABLE:
+    if (arg) {
+      stm32_dac_modify_cr(chan,0,DAC_CR_EN);
+    } else {
+      stm32_dac_modify_cr(chan,DAC_CR_EN,0);
+    }
+    break;
 #endif
 
   default:

@@ -41,7 +41,7 @@ ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 #CSRCS		= up_boot.c up_leds.c up_buttons.c up_spi.c up_usbdev.c
-CSRCS           = up_boot.c #up_display.c up_key.c user.c
+CSRCS           = up_boot.c user.c #up_display.c up_key.c
 
 ifeq ($(CONFIG_LCD_SSD1289),y)
 CSRCS += stm32_ssd1289.c
