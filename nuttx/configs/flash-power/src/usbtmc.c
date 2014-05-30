@@ -60,7 +60,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include <ficl.h>
+#include <apps/ficl/ficl.h>
 #include "usbtmc.h"
 
 /****************************************************************************
@@ -72,30 +72,35 @@
 /* Number of requests in the write queue */
 
 #ifndef CONFIG_USBTMC_NWRREQS
-#  define CONFIG_USBTMC_NWRREQS 4
+#  define CONFIG_USBTMC_NWRREQS 8
 #endif
 
 /* Number of requests in the read queue */
 
 #ifndef CONFIG_USBTMC_NRDREQS
-#  define CONFIG_USBTMC_NRDREQS 4
+#  define CONFIG_USBTMC_NRDREQS 8
 #endif
 
 /* Logical endpoint numbers / max packet sizes */
 
-#ifndef CONFIG_USBTMC_EPINTIN
-#  warning "EPINTIN not defined in the configuration"
-#  define CONFIG_USBTMC_EPINTIN 1
+#ifndef CONFIG_USBTMC_EPBULKOUTFICL
+#  warning "EPBULKOUT for FICL not defined in the configuration"
+#  define CONFIG_USBTMC_EPBULKOUTFICL 1
 #endif
 
-#ifndef CONFIG_USBTMC_EPBULKOUT
-#  warning "EPBULKOUT not defined in the configuration"
-#  define CONFIG_USBTMC_EPBULKOUT 2
+#ifndef CONFIG_USBTMC_EPBULKINFICL
+#  warning "EPBULKIN for FICL not defined in the configuration"
+#  define CONFIG_USBTMC_EPBULKINFICL 1
 #endif
 
-#ifndef CONFIG_USBTMC_EPBULKIN
-#  warning "EPBULKIN not defined in the configuration"
-#  define CONFIG_USBTMC_EPBULKIN 3
+#ifndef CONFIG_USBTMC_EPBULKOUTDATA
+#  warning "EPBULKOUT for DATA not defined in the configuration"
+#  define CONFIG_USBTMC_EPBULKOUTDATA 2
+#endif
+
+#ifndef CONFIG_USBTMC_EPBULKINDATA
+#  warning "EPBULKIN for DATA not defined in the configuration"
+#  define CONFIG_USBTMC_EPBULKINDATA 2
 #endif
 
 /* Packet and request buffer sizes */
@@ -173,19 +178,21 @@ static uint16_t str_config[] = {0x6d4b,0x8bd5,0x6d4b,0x91cf,0x4eea,0x5668};
 #define USBTMC_INTERFACEID         (0)
 #define USBTMC_ALTINTERFACEID      (0)
 #define USBTMC_NINTERFACES         (1)      /* Number of interfaces in the configuration */
-#define USBTMC_NENDPOINTS          (3)      /* Number of endpoints in the interface  */
+#define USBTMC_NENDPOINTS          (4)      /* Number of endpoints in the interface  */
 
 /* Endpoint configuration */
 
-#define USBTMC_EPINTIN_ADDR        (USB_DIR_IN|CONFIG_USBTMC_EPINTIN)
-#define USBTMC_EPINTIN_ATTR        (USB_EP_ATTR_XFER_INT)
-#define USBTMC_EPINTIN_MXPACKET    (10)
+#define USBTMC_EPOUTBULK_FICL_ADDR      (CONFIG_USBTMC_EPBULKOUTFICL)
+#define USBTMC_EPOUTBULK_FICL_ATTR      (USB_EP_ATTR_XFER_BULK)
 
-#define USBTMC_EPOUTBULK_ADDR      (CONFIG_USBTMC_EPBULKOUT)
-#define USBTMC_EPOUTBULK_ATTR      (USB_EP_ATTR_XFER_BULK)
+#define USBTMC_EPINBULK_FICL_ADDR       (USB_DIR_IN|CONFIG_USBTMC_EPBULKINFICL)
+#define USBTMC_EPINBULK_FICL_ATTR       (USB_EP_ATTR_XFER_BULK)
 
-#define USBTMC_EPINBULK_ADDR       (USB_DIR_IN|CONFIG_USBTMC_EPBULKIN)
-#define USBTMC_EPINBULK_ATTR       (USB_EP_ATTR_XFER_BULK)
+#define USBTMC_EPOUTBULK_DATA_ADDR      (CONFIG_USBTMC_EPBULKOUTDATA)
+#define USBTMC_EPOUTBULK_DATA_ATTR      (USB_EP_ATTR_XFER_BULK)
+
+#define USBTMC_EPINBULK_DATA_ADDR       (USB_DIR_IN|CONFIG_USBTMC_EPBULKINDATA)
+#define USBTMC_EPINBULK_DATA_ATTR       (USB_EP_ATTR_XFER_BULK)
 
 /* String language */
 
@@ -245,52 +252,39 @@ struct usbtmc_req_s
     FAR struct usbtmc_req_s *flink;     /* Implements a singly linked list */
     FAR struct usbdev_req_s *req;       /* The contained request */
 };
-struct usbtmc_fifo_s
-{
-  uint8_t head;
-  uint8_t tail;
-  uint8_t used;
-  pthread_mutex_t mutex;
-  char buff[CONFIG_USBTMC_BUFFCOUNT][USBTMC_EP_MXPACKET];
-};
-/* This structure describes the internal state of the driver */
 
+/* This structure describes the internal state of the driver */
 struct usbtmc_dev_s
 {
     FAR struct usbdev_s     *usbdev;    /* usbdev driver pointer */
     
     uint8_t config;                     /* Configuration number */
-    uint8_t nwrq;                       /* Number of queue write requests (in reqlist)*/
-    uint8_t nrdq;                       /* Number of queue read requests (in epbulkout) */
-    int16_t rxhead;                     /* Working head; used when rx int disabled */
-    bool bTransferBegin;
-    uint32_t currTransSize;             /* Current Transfer Size*/
-    uint32_t currRecvSize;
-    uint32_t currSendSize;
-    uint8_t  currTag;
+    uint8_t nwrq_ficl;                  /* Number of queue write requests (in reqlist)*/
+    uint8_t nrdq_ficl;                  /* Number of queue read requests (in epbulkout) */
+    uint8_t nwrq_data;                 
+    uint8_t nrdq_data;
     ficlVm *ficl_vm;                    /* Ficl Virtual Machine*/
     ficlSystem *ficl_system;            /* Ficl */
-    sem_t read_sem;                     /* indicate decode thread to decode usbtmc message*/
-    sem_t write_sem;                    /* indicate decode thread to send data to host*/
-    pthread_t decodethread;
-    FAR struct usbdev_ep_s  *epintin;   /* Interrupt IN endpoint structure */
-    FAR struct usbdev_ep_s  *epbulkin;  /* Bulk IN endpoint structure */
-    FAR struct usbdev_ep_s  *epbulkout; /* Bulk OUT endpoint structure */
+    FAR struct usbdev_ep_s  *epbulkin_ficl;  /* FICL Bulk IN endpoint structure */
+    FAR struct usbdev_ep_s  *epbulkout_ficl; /* FICL Bulk OUT endpoint structure */
+    FAR struct usbdev_ep_s  *epbulkin_data;  /* DATA Bulk IN endpoint structure */
+    FAR struct usbdev_ep_s  *epbulkout_data; /* DATA Bulk OUT endpoint structure */
     FAR struct usbdev_req_s *ctrlreq;   /* Control request */
-    struct sq_queue_s        reqlist;   /* List of write request containers */
+    struct sq_queue_s        reqlist_ficl;   /* List of write request containers for ficl*/
+    struct sq_queue_s        reqlist_data;   /* List of write request containers for data */
     
     /* Pre-allocated write request containers.  The write requests will
      * be linked in a free list (reqlist), and used to send requests to
      * EPBULKIN; Read requests will be queued in the EBULKOUT.
      */
     
-    struct usbtmc_req_s wrreqs[CONFIG_USBTMC_NWRREQS];
-    struct usbtmc_req_s rdreqs[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s wrreqs_ficl[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s rdreqs_ficl[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s wrreqs_data[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s rdreqs_data[CONFIG_USBTMC_NWRREQS];
     
     /* I/O buffers */
-    
-    struct usbtmc_fifo_s rxbuffer;
-    struct usbtmc_fifo_s txbuffer;
+
 };
 
 /* The internal version of the class driver */
@@ -314,12 +308,13 @@ struct usbtmc_alloc_s
  ****************************************************************************/
 
 /* Transfer helpers *********************************************************/
-
-static uint16_t usbclass_fillrequest(FAR struct usbtmc_dev_s *priv,
-                                     uint8_t *reqbuf, uint16_t reqlen);
-static int     usbclass_sndpacket(FAR struct usbtmc_dev_s *priv);
-static inline int usbclass_recvpacket(FAR struct usbtmc_dev_s *priv,
-                                      uint8_t *reqbuf, uint16_t reqlen);
+static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv,FAR struct usbdev_ep_s *ep, struct sq_queue_s *reqlist);
+static uint16_t usbclass_fillrequest_ficl(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen);
+static uint16_t usbclass_fillrequest_data(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen);
+static int     usbclass_sndpacket_ficl(FAR struct usbtmc_dev_s *priv);
+static inline int usbclass_recvpacket_ficl(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen);
+static int     usbclass_sndpacket_data(FAR struct usbtmc_dev_s *priv);
+static inline int usbclass_recvpacket_data(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen);
 
 /* Request helpers *********************************************************/
 
@@ -346,10 +341,14 @@ static int     usbclass_setconfig(FAR struct usbtmc_dev_s *priv,
 
 static void    usbclass_ep0incomplete(FAR struct usbdev_ep_s *ep,
                                       FAR struct usbdev_req_s *req);
-static void    usbclass_rdcomplete(FAR struct usbdev_ep_s *ep,
+static void    usbclass_rdcomplete_ficl(FAR struct usbdev_ep_s *ep,
                                    FAR struct usbdev_req_s *req);
-static void    usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
+static void    usbclass_wrcomplete_ficl(FAR struct usbdev_ep_s *ep,
                                    FAR struct usbdev_req_s *req);
+static void    usbclass_rdcomplete_data(FAR struct usbdev_ep_s *ep,
+                                        FAR struct usbdev_req_s *req);
+static void    usbclass_wrcomplete_data(FAR struct usbdev_ep_s *ep,
+                                        FAR struct usbdev_req_s *req);
 
 /* USB class device ********************************************************/
 
@@ -446,7 +445,7 @@ static const struct usb_ifdesc_s g_ifdesc =
     0,                                            /* protocol */
     USBTMC_CONFIGSTRID                            /* iif */
 };
-
+#if 0
 static const struct usb_epdesc_s g_epintindesc =
 {
     USB_SIZEOF_EPDESC,                            /* len */
@@ -457,25 +456,45 @@ static const struct usb_epdesc_s g_epintindesc =
         MSBYTE(USBTMC_EPINTIN_MXPACKET) },
         1                                             /* interval */
 };
-
-static const struct usb_epdesc_s g_epbulkoutdesc =
+#endif 
+static const struct usb_epdesc_s g_epbulkoutficldesc =
 {
     USB_SIZEOF_EPDESC,                            /* len */
     USB_DESC_TYPE_ENDPOINT,                       /* type */
-    USBTMC_EPOUTBULK_ADDR,                        /* addr */
-    USBTMC_EPOUTBULK_ATTR,                        /* attr */
+    USBTMC_EPOUTBULK_FICL_ADDR,                   /* addr */
+    USBTMC_EPOUTBULK_FICL_ATTR,                   /* attr */
     { LSBYTE(USBTMC_EP_MXPACKET), MSBYTE(USBTMC_EP_MXPACKET) },/* maxpacket -- might change to 512 */
     0                                             /* interval */
 };
 
-static const struct usb_epdesc_s g_epbulkindesc =
+static const struct usb_epdesc_s g_epbulkinficldesc =
 {
     USB_SIZEOF_EPDESC,                            /* len */
     USB_DESC_TYPE_ENDPOINT,                       /* type */
-    USBTMC_EPINBULK_ADDR,                         /* addr */
-    USBTMC_EPINBULK_ATTR,                         /* attr */
+    USBTMC_EPINBULK_FICL_ADDR,                         /* addr */
+    USBTMC_EPINBULK_FICL_ATTR,                         /* attr */
     { LSBYTE(USBTMC_EP_MXPACKET), MSBYTE(USBTMC_EP_MXPACKET) },    /* maxpacket -- might change to 512 */
     0                                             /* interval */
+};
+
+static const struct usb_epdesc_s g_epbulkoutdatadesc =
+{
+  USB_SIZEOF_EPDESC,                            /* len */
+  USB_DESC_TYPE_ENDPOINT,                       /* type */
+  USBTMC_EPOUTBULK_DATA_ADDR,                        /* addr */
+  USBTMC_EPOUTBULK_DATA_ATTR,                        /* attr */
+  { LSBYTE(USBTMC_EP_MXPACKET), MSBYTE(USBTMC_EP_MXPACKET) },/* maxpacket -- might change to 512 */
+  0                                             /* interval */
+};
+
+static const struct usb_epdesc_s g_epbulkindatadesc =
+{
+  USB_SIZEOF_EPDESC,                            /* len */
+  USB_DESC_TYPE_ENDPOINT,                       /* type */
+  USBTMC_EPINBULK_DATA_ADDR,                         /* addr */
+  USBTMC_EPINBULK_DATA_ATTR,                         /* attr */
+  { LSBYTE(USBTMC_EP_MXPACKET), MSBYTE(USBTMC_EP_MXPACKET) },    /* maxpacket -- might change to 512 */
+  0                                             /* interval */
 };
 
 #ifdef CONFIG_USBDEV_DUALSPEED
@@ -492,12 +511,7 @@ static const struct usb_qualdesc_s g_qualdesc =
     0,                                            /* reserved */
 };
 #endif
-static struct usbtmc_capability_s g_cap = {
-  .status = STATUS_SUCCESS,
-  .bcd_ver = 0x0100,
-  .interface_cap = 0,
-  .device_cap = 0,
-};
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -518,24 +532,15 @@ static struct usbtmc_capability_s g_cap = {
  *
  ************************************************************************************/
 
-static uint16_t usbclass_fillrequest(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf,
+static uint16_t usbclass_fillrequest_ficl(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf,
                                      uint16_t reqlen)
 {
-  if (reqlen % 4) {
-    usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG),0);
-    return -EINVAL;
-  }
+  return reqlen;
+}
 
-  if (priv->txbuffer.used == 0) {
-    return 0;
-  }
-
-  memcpy(reqbuf,&priv->txbuffer.buff[priv->txbuffer.head],reqlen);
-  pthread_mutex_lock(&priv->txbuffer.mutex);
-  priv->txbuffer.used--;
-  priv->txbuffer.head = (priv->txbuffer.head+1) % CONFIG_USBTMC_BUFFCOUNT;
-  pthread_mutex_unlock(&priv->txbuffer.mutex);
-  sem_post(&priv->write_sem);
+static uint16_t usbclass_fillrequest_data(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf,
+    uint16_t reqlen)
+{
   return reqlen;
 }
 
@@ -549,8 +554,7 @@ static uint16_t usbclass_fillrequest(FAR struct usbtmc_dev_s *priv, uint8_t *req
  *   to send.
  *
  ************************************************************************************/
-
-static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv)
+static int usbclass_sndpacket_ficl(FAR struct usbtmc_dev_s *priv)
 {
 
   FAR struct usbdev_ep_s *ep;
@@ -573,7 +577,7 @@ static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv)
 
   /* Use our IN endpoint for the transfer */
 
-  ep = priv->epbulkin;
+  ep = priv->epbulkin_ficl;
 
   /* Loop until either (1) we run out or write requests, or (2) usbclass_fillrequest()
    * is unable to fill the request with data (i.e., until there is no more data
@@ -585,22 +589,96 @@ static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv)
   //reqlen = max(CONFIG_PL2303_BULKIN_REQLEN, ep->maxpacket);
   reqlen = ep->maxpacket;
 
-  while (!sq_empty(&priv->reqlist))
+  while (!sq_empty(&priv->reqlist_ficl))
     {
       /* Peek at the request in the container at the head of the list */
 
-      reqcontainer = (struct usbtmc_req_s *)sq_peek(&priv->reqlist);
+      reqcontainer = (struct usbtmc_req_s *)sq_peek(&priv->reqlist_ficl);
       req          = reqcontainer->req;
 
       /* Fill the request with serial TX data */
 
-      len = usbclass_fillrequest(priv, req->buf, reqlen);
+      len = usbclass_fillrequest_ficl(priv, req->buf, reqlen);
       if (len > 0)
         {
           /* Remove the empty container from the request list */
 
-          (void)sq_remfirst(&priv->reqlist);
-          priv->nwrq--;
+          (void)sq_remfirst(&priv->reqlist_ficl);
+          priv->nwrq_ficl--;
+
+          /* Then submit the request to the endpoint */
+
+          req->len     = len;
+          req->priv    = reqcontainer;
+          req->flags   = USBDEV_REQFLAGS_NULLPKT;
+          ret          = EP_SUBMIT(ep, req);
+          if (ret != OK)
+            {
+              usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_SUBMITFAIL), (uint16_t)-ret);
+              break;
+            }
+        }
+      else
+        {
+          break;
+        }
+    }
+
+  irqrestore(flags);
+  return ret;
+}
+
+static int usbclass_sndpacket_data(FAR struct usbtmc_dev_s *priv)
+{
+
+  FAR struct usbdev_ep_s *ep;
+  FAR struct usbdev_req_s *req;
+  FAR struct usbtmc_req_s *reqcontainer;
+  uint16_t reqlen;
+  irqstate_t flags;
+  int len;
+  int ret = OK;
+
+#ifdef CONFIG_DEBUG
+  if (priv == NULL)
+    {
+      usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
+      return -ENODEV;
+    }
+#endif
+
+  flags = irqsave();
+
+  /* Use our IN endpoint for the transfer */
+
+  ep = priv->epbulkin_data;
+
+  /* Loop until either (1) we run out or write requests, or (2) usbclass_fillrequest()
+   * is unable to fill the request with data (i.e., until there is no more data
+   * to be sent).
+   */
+
+  /* Get the maximum number of bytes that will fit into one bulk IN request */
+
+  //reqlen = max(CONFIG_PL2303_BULKIN_REQLEN, ep->maxpacket);
+  reqlen = ep->maxpacket;
+
+  while (!sq_empty(&priv->reqlist_data))
+    {
+      /* Peek at the request in the container at the head of the list */
+
+      reqcontainer = (struct usbtmc_req_s *)sq_peek(&priv->reqlist_data);
+      req          = reqcontainer->req;
+
+      /* Fill the request with serial TX data */
+
+      len = usbclass_fillrequest_data(priv, req->buf, reqlen);
+      if (len > 0)
+        {
+          /* Remove the empty container from the request list */
+
+          (void)sq_remfirst(&priv->reqlist_data);
+          priv->nwrq_data--;
 
           /* Then submit the request to the endpoint */
 
@@ -637,26 +715,22 @@ static int usbclass_sndpacket(FAR struct usbtmc_dev_s *priv)
  *
  ************************************************************************************/
 
-static inline int usbclass_recvpacket(FAR struct usbtmc_dev_s *priv,
-                                      uint8_t *reqbuf, uint16_t reqlen)
+static inline int usbclass_recvpacket_ficl(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen)
 {
-
-  if(reqlen % 4 || reqlen > USBTMC_EP_MXPACKET) {
+  if(reqlen > USBTMC_EP_MXPACKET) {
     usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG),EINVAL);
     return -EINVAL;
   }
-  if (priv->rxbuffer.used == CONFIG_USBTMC_BUFFCOUNT) {
-    usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RXOVERRUN),0);
-    return -EPERM;
-  }
-  
 
-  memcpy(&priv->rxbuffer.buff[priv->rxbuffer.tail], reqbuf, reqlen);
-  pthread_mutex_lock(&priv->rxbuffer.mutex);
-  priv->rxbuffer.used++;
-  priv->rxbuffer.tail = (priv->rxbuffer.tail+1) % CONFIG_USBTMC_BUFFCOUNT;
-  pthread_mutex_unlock(&priv->rxbuffer.mutex);
-  sem_post(&priv->read_sem);
+  return 0;
+}
+
+static inline int usbclass_recvpacket_data(FAR struct usbtmc_dev_s *priv, uint8_t *reqbuf, uint16_t reqlen)
+{
+  if(reqlen > USBTMC_EP_MXPACKET) {
+      usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG),EINVAL);
+      return -EINVAL;
+    }
 
   return 0;
 }
@@ -849,9 +923,6 @@ static int16_t usbclass_mkcfgdesc(uint8_t *buf)
     }
     #endif
     
-    memcpy(buf, &g_epintindesc, USB_SIZEOF_EPDESC);
-    buf += USB_SIZEOF_EPDESC;
-    
     #ifdef CONFIG_USBDEV_DUALSPEED
     if (hispeed)
     {
@@ -862,13 +933,21 @@ static int16_t usbclass_mkcfgdesc(uint8_t *buf)
         bulkmxpacket = 64;
     }
     
-    usbclass_mkepbulkdesc(&g_epbulkoutdesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
+    usbclass_mkepbulkdesc(&g_epbulkoutficldesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
     buf += USB_SIZEOF_EPDESC;
-    usbclass_mkepbulkdesc(&g_epbulkindesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
+    usbclass_mkepbulkdesc(&g_epbulkinficldesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
+    buf += USB_SIZEOF_EPDESC;
+    usbclass_mkepbulkdesc(&g_epbulkoutdatadesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
+    buf += USB_SIZEOF_EPDESC;
+    usbclass_mkepbulkdesc(&g_epbulkindatadesc, bulkmxpacket, (struct usb_epdesc_s*)buf);
     #else
-    memcpy(buf, &g_epbulkoutdesc, USB_SIZEOF_EPDESC);
+    memcpy(buf, &g_epbulkoutficldesc, USB_SIZEOF_EPDESC);
     buf += USB_SIZEOF_EPDESC;
-    memcpy(buf, &g_epbulkindesc, USB_SIZEOF_EPDESC);
+    memcpy(buf, &g_epbulkinficldesc, USB_SIZEOF_EPDESC);
+    buf += USB_SIZEOF_EPDESC;
+    memcpy(buf, &g_epbulkoutdatadesc, USB_SIZEOF_EPDESC);
+    buf += USB_SIZEOF_EPDESC;
+    memcpy(buf, &g_epbulkindatadesc, USB_SIZEOF_EPDESC);
     #endif
     
     /* Finally, fill in the total size of the configuration descriptor */
@@ -905,9 +984,10 @@ static void usbclass_resetconfig(FAR struct usbtmc_dev_s *priv)
          * transfers.
          */
         
-        EP_DISABLE(priv->epintin);
-        EP_DISABLE(priv->epbulkin);
-        EP_DISABLE(priv->epbulkout);
+        EP_DISABLE(priv->epbulkin_ficl);
+        EP_DISABLE(priv->epbulkout_ficl);
+        EP_DISABLE(priv->epbulkin_data);
+        EP_DISABLE(priv->epbulkout_data);
     }
 }
 
@@ -965,17 +1045,7 @@ static int usbclass_setconfig(FAR struct usbtmc_dev_s *priv, uint8_t config)
         usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_CONFIGIDBAD), 0);
         return -EINVAL;
     }
-    
-    /* Configure the IN interrupt endpoint */
-    
-    ret = EP_CONFIGURE(priv->epintin, &g_epintindesc, false);
-    if (ret < 0)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPINTINCONFIGFAIL), 0);
-        goto errout;
-    }
-    priv->epintin->priv = priv;
-    
+     
     /* Configure the IN bulk endpoint */
     
     #ifdef CONFIG_USBDEV_DUALSPEED
@@ -988,10 +1058,10 @@ static int usbclass_setconfig(FAR struct usbtmc_dev_s *priv, uint8_t config)
         bulkmxpacket = 64;
     }
     
-    usbclass_mkepbulkdesc(&g_epbulkindesc, bulkmxpacket, &epdesc);
-    ret = EP_CONFIGURE(priv->epbulkin, &epdesc, false);
+    usbclass_mkepbulkdesc(&g_epbulkinficldesc, bulkmxpacket, &epdesc);
+    ret = EP_CONFIGURE(priv->epbulkin_ficl, &epdesc, false);
     #else
-    ret = EP_CONFIGURE(priv->epbulkin, &g_epbulkindesc, false);
+    ret = EP_CONFIGURE(priv->epbulkin_ficl, &g_epbulkinficldesc, false);
     #endif
     if (ret < 0)
     {
@@ -999,15 +1069,29 @@ static int usbclass_setconfig(FAR struct usbtmc_dev_s *priv, uint8_t config)
         goto errout;
     }
     
-    priv->epbulkin->priv = priv;
+    priv->epbulkin_ficl->priv = priv;
+    
+  #ifdef CONFIG_USBDEV_DUALSPEED
+    usbclass_mkepbulkdesc(&g_epbulkindatadesc, bulkmxpacket, &epdesc);
+    ret = EP_CONFIGURE(priv->epbulkin_data, &epdesc, false);
+  #else
+    ret = EP_CONFIGURE(priv->epbulkin_data, &g_epbulkindatadesc, false);
+  #endif
+    if (ret < 0)
+      {
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKINCONFIGFAIL), 0);
+        goto errout;
+      }
+    
+    priv->epbulkin_data->priv = priv;
     
     /* Configure the OUT bulk endpoint */
     
     #ifdef CONFIG_USBDEV_DUALSPEED
-    usbclass_mkepbulkdesc(&g_epbulkoutdesc, bulkmxpacket, &epdesc);
-    ret = EP_CONFIGURE(priv->epbulkout, &epdesc, true);
+    usbclass_mkepbulkdesc(&g_epbulkoutficldesc, bulkmxpacket, &epdesc);
+    ret = EP_CONFIGURE(priv->epbulkout_ficl, &epdesc, true);
     #else
-    ret = EP_CONFIGURE(priv->epbulkout, &g_epbulkoutdesc, true);
+    ret = EP_CONFIGURE(priv->epbulkout_ficl, &g_epbulkoutficldesc, true);
     #endif
     if (ret < 0)
     {
@@ -1015,23 +1099,47 @@ static int usbclass_setconfig(FAR struct usbtmc_dev_s *priv, uint8_t config)
         goto errout;
     }
     
-    priv->epbulkout->priv = priv;
+    priv->epbulkout_ficl->priv = priv;
+    
+  #ifdef CONFIG_USBDEV_DUALSPEED
+    usbclass_mkepbulkdesc(&g_epbulkoutdatadesc, bulkmxpacket, &epdesc);
+    ret = EP_CONFIGURE(priv->epbulkout_data, &epdesc, true);
+  #else
+    ret = EP_CONFIGURE(priv->epbulkout_data, &g_epbulkoutdatadesc, true);
+  #endif
+    if (ret < 0)
+      {
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKOUTCONFIGFAIL), 0);
+        goto errout;
+      }
+    
+    priv->epbulkout_data->priv = priv;
     
     /* Queue read requests in the bulk OUT endpoint */
     
-    DEBUGASSERT(priv->nrdq == 0);
+    DEBUGASSERT(priv->nrdq_data == 0);
     for (i = 0; i < CONFIG_USBTMC_NRDREQS; i++)
     {
-        req           = priv->rdreqs[i].req;
-        req->callback = usbclass_rdcomplete;
-        ret           = EP_SUBMIT(priv->epbulkout, req);
+        req           = priv->rdreqs_ficl[i].req;
+        req->callback = usbclass_rdcomplete_ficl;
+        ret           = EP_SUBMIT(priv->epbulkout_ficl, req);
         if (ret != OK)
         {
             usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDSUBMIT), (uint16_t)-ret);
             goto errout;
         }
         
-        priv->nrdq++;
+        priv->nrdq_ficl++;
+        req           = priv->rdreqs_data[i].req;
+        req->callback = usbclass_rdcomplete_data;
+        ret           = EP_SUBMIT(priv->epbulkout_data, req);
+        if (ret != OK)
+          {
+            usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDSUBMIT), (uint16_t)-ret);
+            goto errout;
+          }
+        
+        priv->nrdq_data++;
     }
     
     /* We are successfully configured */
@@ -1073,8 +1181,7 @@ static void usbclass_ep0incomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static void usbclass_rdcomplete(FAR struct usbdev_ep_s *ep,
-                                FAR struct usbdev_req_s *req)
+static void usbclass_rdcomplete_ficl(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
 {
     FAR struct usbtmc_dev_s *priv;
     irqstate_t flags;
@@ -1100,13 +1207,13 @@ static void usbclass_rdcomplete(FAR struct usbdev_ep_s *ep,
     switch (req->result)
     {
         case 0: /* Normal completion */
-            usbtrace(TRACE_CLASSRDCOMPLETE, priv->nrdq);
-            usbclass_recvpacket(priv, req->buf, req->xfrd);
+            usbtrace(TRACE_CLASSRDCOMPLETE, priv->nrdq_ficl);
+            usbclass_recvpacket_ficl(priv, req->buf, req->xfrd);
             break;
             
         case -ESHUTDOWN: /* Disconnection */
             usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDSHUTDOWN), 0);
-            priv->nrdq--;
+            priv->nrdq_ficl--;
             irqrestore(flags);
             return;
             
@@ -1126,6 +1233,58 @@ static void usbclass_rdcomplete(FAR struct usbdev_ep_s *ep,
     irqrestore(flags);
 }
 
+static void usbclass_rdcomplete_data(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
+{
+  FAR struct usbtmc_dev_s *priv;
+  irqstate_t flags;
+  int ret;
+  
+  /* Sanity check */
+  
+#ifdef CONFIG_DEBUG
+  if (!ep || !ep->priv || !req)
+    {
+      usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
+      return;
+    }
+#endif
+  
+  /* Extract references to private data */
+  
+  priv = (FAR struct usbtmc_dev_s*)ep->priv;
+  
+  /* Process the received data unless this is some unusual condition */
+  
+  flags = irqsave();
+  switch (req->result)
+    {
+      case 0: /* Normal completion */
+        usbtrace(TRACE_CLASSRDCOMPLETE, priv->nrdq_data);
+        usbclass_recvpacket_data(priv, req->buf, req->xfrd);
+        break;
+        
+      case -ESHUTDOWN: /* Disconnection */
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDSHUTDOWN), 0);
+        priv->nrdq_data--;
+        irqrestore(flags);
+        return;
+        
+      default: /* Some other error occurred */
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDUNEXPECTED), (uint16_t)-req->result);
+        break;
+    };
+  
+  /* Requeue the read request */
+  
+  req->len = ep->maxpacket;
+  ret      = EP_SUBMIT(ep, req);
+  if (ret != OK)
+    {
+      usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDSUBMIT), (uint16_t)-req->result);
+    }
+  irqrestore(flags);
+}
+
 /****************************************************************************
  * Name: usbclass_wrcomplete
  *
@@ -1135,8 +1294,7 @@ static void usbclass_rdcomplete(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static void usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
-                                FAR struct usbdev_req_s *req)
+static void usbclass_wrcomplete_ficl(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
 {
     FAR struct usbtmc_dev_s *priv;
     FAR struct usbtmc_req_s *reqcontainer;
@@ -1160,8 +1318,8 @@ static void usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
     /* Return the write request to the free list */
     
     flags = irqsave();
-    sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist);
-    priv->nwrq++;
+    sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist_ficl);
+    priv->nwrq_ficl++;
     irqrestore(flags);
     
     /* Send the next packet unless this was some unusual termination
@@ -1171,17 +1329,66 @@ static void usbclass_wrcomplete(FAR struct usbdev_ep_s *ep,
     switch (req->result)
     {
         case OK: /* Normal completion */
-            usbtrace(TRACE_CLASSWRCOMPLETE, priv->nwrq);
-            usbclass_sndpacket(priv);
+            usbtrace(TRACE_CLASSWRCOMPLETE, priv->nwrq_ficl);
+            usbclass_sndpacket_ficl(priv);
             break;
             
         case -ESHUTDOWN: /* Disconnection */
-            usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRSHUTDOWN), priv->nwrq);
+            usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRSHUTDOWN), priv->nwrq_ficl);
             break;
             
         default: /* Some other error occurred */
             usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRUNEXPECTED), (uint16_t)-req->result);
             break;
+    }
+}
+
+static void usbclass_wrcomplete_data(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s *req)
+{
+  FAR struct usbtmc_dev_s *priv;
+  FAR struct usbtmc_req_s *reqcontainer;
+  irqstate_t flags;
+  
+  /* Sanity check */
+  
+#ifdef CONFIG_DEBUG
+  if (!ep || !ep->priv || !req || !req->priv)
+    {
+      usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_INVALIDARG), 0);
+      return;
+    }
+#endif
+  
+  /* Extract references to our private data */
+  
+  priv         = (FAR struct usbtmc_dev_s *)ep->priv;
+  reqcontainer = (FAR struct usbtmc_req_s *)req->priv;
+  
+  /* Return the write request to the free list */
+  
+  flags = irqsave();
+  sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist_data);
+  priv->nwrq_data++;
+  irqrestore(flags);
+  
+  /* Send the next packet unless this was some unusual termination
+   * condition
+   */
+  
+  switch (req->result)
+    {
+      case OK: /* Normal completion */
+        usbtrace(TRACE_CLASSWRCOMPLETE, priv->nwrq_data);
+        usbclass_sndpacket_data(priv);
+        break;
+        
+      case -ESHUTDOWN: /* Disconnection */
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRSHUTDOWN), priv->nwrq_data);
+        break;
+        
+      default: /* Some other error occurred */
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRUNEXPECTED), (uint16_t)-req->result);
+        break;
     }
 }
 
@@ -1210,7 +1417,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     ficlSystemInformation fsi;
     
     usbtrace(TRACE_CLASSBIND, 0);
-    
+    printf("+usbclass_bind\n");
     /* Bind the structures */
     
     priv->usbdev   = dev;
@@ -1241,38 +1448,49 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
      * logic where kmalloc calls will fail.
      */
     
-    /* Pre-allocate the IN interrupt endpoint */
-    
-    priv->epintin = DEV_ALLOCEP(dev, USBTMC_EPINTIN_ADDR, true, USB_EP_ATTR_XFER_INT);
-    if (!priv->epintin)
-    {
-        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPINTINALLOCFAIL), 0);
-        ret = -ENODEV;
-        goto errout;
-    }
-    priv->epintin->priv = priv;
-    
     /* Pre-allocate the IN bulk endpoint */
-    
-    priv->epbulkin = DEV_ALLOCEP(dev, USBTMC_EPINBULK_ADDR, true, USB_EP_ATTR_XFER_BULK);
-    if (!priv->epbulkin)
+    printf("1\n");
+    priv->epbulkin_ficl = DEV_ALLOCEP(dev, USBTMC_EPINBULK_FICL_ADDR, true, USB_EP_ATTR_XFER_BULK);
+    if (!priv->epbulkin_ficl)
     {
+        printf("1\n");
         usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKINALLOCFAIL), 0);
         ret = -ENODEV;
         goto errout;
     }
-    priv->epbulkin->priv = priv;
+    priv->epbulkin_ficl->priv = priv;
+    printf("2\n");
+    priv->epbulkin_data = DEV_ALLOCEP(dev, USBTMC_EPINBULK_DATA_ADDR, true, USB_EP_ATTR_XFER_BULK);
+    if (!priv->epbulkin_data)
+      {
+        printf("2\n");
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKINALLOCFAIL), 0);
+        ret = -ENODEV;
+        goto errout;
+      }
+    priv->epbulkin_data->priv = priv;
     
     /* Pre-allocate the OUT bulk endpoint */
-    
-    priv->epbulkout = DEV_ALLOCEP(dev, USBTMC_EPOUTBULK_ADDR, false, USB_EP_ATTR_XFER_BULK);
-    if (!priv->epbulkout)
+    printf("3\n");
+    priv->epbulkout_ficl = DEV_ALLOCEP(dev, USBTMC_EPOUTBULK_FICL_ADDR, false, USB_EP_ATTR_XFER_BULK);
+    if (!priv->epbulkout_ficl)
     {
+        printf("3\n");
         usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKOUTALLOCFAIL), 0);
         ret = -ENODEV;
         goto errout;
     }
-    priv->epbulkout->priv = priv;
+    priv->epbulkout_ficl->priv = priv;
+    printf("4\n");
+    priv->epbulkout_data = DEV_ALLOCEP(dev, USBTMC_EPOUTBULK_DATA_ADDR, false, USB_EP_ATTR_XFER_BULK);
+    if (!priv->epbulkout_data)
+      {
+        printf("4\n");
+        usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_EPBULKOUTALLOCFAIL), 0);
+        ret = -ENODEV;
+        goto errout;
+      }
+    priv->epbulkout_data->priv = priv;
     
     /* Pre-allocate read requests.  The buffer size is one full packet. */
     
@@ -1284,8 +1502,8 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     
     for (i = 0; i < CONFIG_USBTMC_NRDREQS; i++)
     {
-        reqcontainer      = &priv->rdreqs[i];
-        reqcontainer->req = usbclass_allocreq(priv->epbulkout, reqlen);
+        reqcontainer      = &priv->rdreqs_ficl[i];
+        reqcontainer->req = usbclass_allocreq(priv->epbulkout_ficl, reqlen);
         if (reqcontainer->req == NULL)
         {
             usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDALLOCREQ), -ENOMEM);
@@ -1294,9 +1512,21 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
         }
         
         reqcontainer->req->priv     = reqcontainer;
-        reqcontainer->req->callback = usbclass_rdcomplete;
+        reqcontainer->req->callback = usbclass_rdcomplete_ficl;
+        // set DATA
+        reqcontainer      = &priv->rdreqs_data[i];
+        reqcontainer->req = usbclass_allocreq(priv->epbulkout_data, reqlen);
+        if (reqcontainer->req == NULL)
+          {
+            usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_RDALLOCREQ), -ENOMEM);
+            ret = -ENOMEM;
+            goto errout;
+          }
+        
+        reqcontainer->req->priv     = reqcontainer;
+        reqcontainer->req->callback = usbclass_rdcomplete_data;
     }
-    
+   
     /* Pre-allocate write request containers and put in a free list.
      * The buffer size should be larger than a full packet.  Otherwise,
      * we will send a bogus null packet at the end of each packet.
@@ -1318,8 +1548,8 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     
     for (i = 0; i < CONFIG_USBTMC_NWRREQS; i++)
     {
-        reqcontainer      = &priv->wrreqs[i];
-        reqcontainer->req = usbclass_allocreq(priv->epbulkin, reqlen);
+        reqcontainer      = &priv->wrreqs_ficl[i];
+        reqcontainer->req = usbclass_allocreq(priv->epbulkin_ficl, reqlen);
         if (reqcontainer->req == NULL)
         {
             usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRALLOCREQ), -ENOMEM);
@@ -1328,25 +1558,46 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
         }
         
         reqcontainer->req->priv     = reqcontainer;
-        reqcontainer->req->callback = usbclass_wrcomplete;
+        reqcontainer->req->callback = usbclass_wrcomplete_ficl;
         
         flags = irqsave();
-        sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist);
-        priv->nwrq++;     /* Count of write requests available */
+        sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist_ficl);
+        priv->nwrq_ficl++;     /* Count of write requests available */
         irqrestore(flags);
     }
-    
+
+  for (i = 0; i < CONFIG_USBTMC_NWRREQS; i++)
+    {
+      reqcontainer      = &priv->wrreqs_data[i];
+      reqcontainer->req = usbclass_allocreq(priv->epbulkin_data, reqlen);
+      if (reqcontainer->req == NULL)
+        {
+          usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_WRALLOCREQ), -ENOMEM);
+          ret = -ENOMEM;
+          goto errout;
+        }
+      
+      reqcontainer->req->priv     = reqcontainer;
+      reqcontainer->req->callback = usbclass_wrcomplete_data;
+      
+      flags = irqsave();
+      sq_addlast((sq_entry_t*)reqcontainer, &priv->reqlist_data);
+      priv->nwrq_data++;     /* Count of write requests available */
+      irqrestore(flags);
+    }
+  printf("8\n");
     ficlSystemInformationInitialize(&fsi);
     fsi.textOut = usbtmc_ficlTextOut;
     fsi.errorOut = usbtmc_ficlTextOut;
     fsi.context = priv;
     priv->ficl_system = ficlSystemCreate(&fsi);
+    printf("9\n");
     ficlSystemCompileExtras(priv->ficl_system);
+    printf("9\n");
     priv->ficl_vm = ficlSystemCreateVm(priv->ficl_system);
+    printf("10\n");
     
-    sem_init(&priv->read_sem,0,0);
-    sem_init(&priv->write_sem,0,CONFIG_USBTMC_BUFFCOUNT);
-#if 1
+#if 0
     //init pthread mutex for rxbuffer and txbuffer
     pthread_mutexattr_init(&mattr);
     ret = pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
@@ -1366,6 +1617,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     pthread_mutex_init(&priv->rxbuffer.mutex, &mattr);
     pthread_mutex_init(&priv->txbuffer.mutex, &mattr);
 #endif
+  #if 0
     // Create a pthread to do usbtmc messaged decode
     ret = pthread_create(&priv->decodethread,NULL,usbtmc_decode_thread,priv);
     if (ret != OK) {
@@ -1373,7 +1625,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
       ret = -errno;
       goto errout;
     }
-
+#endif
     /* Report if we are selfpowered */
     
     #ifdef CONFIG_USBDEV_SELFPOWERED
@@ -1383,7 +1635,7 @@ static int usbclass_bind(FAR struct usbdevclass_driver_s *driver,
     /* And pull-up the data line for the soft connect function */
     
     DEV_CONNECT(dev);
-    
+    printf("-usbclass_bind\n");
     return OK;
     
 errout:
@@ -1443,20 +1695,18 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
         usbclass_resetconfig(priv);
         up_mdelay(50);
         
-        /* Free the interrupt IN endpoint */
-        
-        if (priv->epintin)
-        {
-            DEV_FREEEP(dev, priv->epintin);
-            priv->epintin = NULL;
-        }
         
         /* Free the bulk IN endpoint */
         
-        if (priv->epbulkin)
+        if (priv->epbulkin_ficl)
         {
-            DEV_FREEEP(dev, priv->epbulkin);
-            priv->epbulkin = NULL;
+            DEV_FREEEP(dev, priv->epbulkin_ficl);
+            priv->epbulkin_ficl = NULL;
+        }
+        if (priv->epbulkin_data)
+        {
+          DEV_FREEEP(dev, priv->epbulkin_data);
+          priv->epbulkin_data = NULL;
         }
         
         /* Free the pre-allocated control request */
@@ -1471,23 +1721,34 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
          * been returned to the free list at this time -- we don't check)
          */
         
-        DEBUGASSERT(priv->nrdq == 0);
+        DEBUGASSERT(priv->nrdq_ficl == 0);
         for (i = 0; i < CONFIG_USBTMC_NRDREQS; i++)
         {
-            reqcontainer = &priv->rdreqs[i];
+            reqcontainer = &priv->rdreqs_ficl[i];
             if (reqcontainer->req)
             {
-                usbclass_freereq(priv->epbulkout, reqcontainer->req);
+                usbclass_freereq(priv->epbulkout_ficl, reqcontainer->req);
                 reqcontainer->req = NULL;
+            }
+            reqcontainer = &priv->rdreqs_data[i];
+            if (reqcontainer->req)
+            {
+              usbclass_freereq(priv->epbulkout_data, reqcontainer->req);
+              reqcontainer->req = NULL;
             }
         }
         
         /* Free the bulk OUT endpoint */
         
-        if (priv->epbulkout)
+        if (priv->epbulkout_ficl)
         {
-            DEV_FREEEP(dev, priv->epbulkout);
-            priv->epbulkout = NULL;
+            DEV_FREEEP(dev, priv->epbulkout_ficl);
+            priv->epbulkout_ficl = NULL;
+        }
+        if (priv->epbulkout_data)
+        {
+          DEV_FREEEP(dev, priv->epbulkout_data);
+          priv->epbulkout_data = NULL;
         }
         
         /* Free write requests that are not in use (which should be all
@@ -1495,26 +1756,39 @@ static void usbclass_unbind(FAR struct usbdevclass_driver_s *driver,
          */
         
         flags = irqsave();
-        DEBUGASSERT(priv->nwrq == CONFIG_USBTMC_NWRREQS);
-        while (!sq_empty(&priv->reqlist))
-        {
-            reqcontainer = (struct usbtmc_req_s *)sq_remfirst(&priv->reqlist);
+        //DEBUGASSERT(priv->nwrq_ficl == CONFIG_USBTMC_NWRREQS);
+        if (priv->nwrq_ficl >0) {
+          while (!sq_empty(&priv->reqlist_ficl)) {
+            reqcontainer = (struct usbtmc_req_s *)sq_remfirst(&priv->reqlist_ficl);
             if (reqcontainer->req != NULL)
             {
-                usbclass_freereq(priv->epbulkin, reqcontainer->req);
-                priv->nwrq--;     /* Number of write requests queued */
+                usbclass_freereq(priv->epbulkin_ficl, reqcontainer->req);
+                priv->nwrq_ficl--;     /* Number of write requests queued */
+            }
+          }
+        }
+      //DEBUGASSERT(priv->nwrq_data == CONFIG_USBTMC_NWRREQS);
+      if (priv->nwrq_data > 0) {
+        while (!sq_empty(&priv->reqlist_data)) {
+          reqcontainer = (struct usbtmc_req_s *)sq_remfirst(&priv->reqlist_data);
+          if (reqcontainer->req != NULL)
+            {
+              usbclass_freereq(priv->epbulkin_data, reqcontainer->req);
+              priv->nwrq_data--;     /* Number of write requests queued */
             }
         }
-        DEBUGASSERT(priv->nwrq == 0);
-        irqrestore(flags);
-    }
+      }
     
+      //DEBUGASSERT(priv->nwrq_data == 0);
+      irqrestore(flags);
+    }
+  
+#if 0    
     pthread_cancel(priv->decodethread);
     pthread_mutex_destroy(&priv->rxbuffer.mutex);
     pthread_mutex_destroy(&priv->txbuffer.mutex);
-    sem_destroy(&priv->read_sem);
-    sem_destroy(&priv->write_sem);
     // Whether need to clear all txbuffer and rxbuffer?
+#endif
 }
 
 /****************************************************************************
@@ -1687,14 +1961,17 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
                 /* Handle Clear Feature specified in usbtmc specs*/
                 {
                   if(value == USB_FEATURE_ENDPOINTHALT && len == 0) {
-                    if (index == USBTMC_EPOUTBULK_ADDR) {
-                      /* The device, after receiving CLEAR_FEATURE request, must interpret 
-                      the first part of the next Bulk-OUT transaction as a new USBTMC Bulk-OUT Header*/
-                      // TODO add logic
-                    } else if (index == USBTMC_EPINBULK_ADDR) {
-                      /* The device, after receiving CLEAR_FEATURE request, msut not queue any bulk-in data 
-                      until it receives a USBTMC command message that expects a reponse*/
-                      //TODO add logic
+                    switch (index) {
+                        case USBTMC_EPOUTBULK_FICL_ADDR:
+                          break;
+                        case USBTMC_EPOUTBULK_DATA_ADDR:
+                          break;
+                        case USBTMC_EPINBULK_FICL_ADDR:
+                          break;
+                        case USBTMC_EPINBULK_DATA_ADDR:
+                          break;
+                        default:
+                          break;
                     }
                   }
                 }
@@ -1709,6 +1986,7 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
         /***********************************************************************
          * USBTMC Class-Specific Requests
          ***********************************************************************/
+      #if 0
         case USB_REQ_TYPE_CLASS:
         {
           switch (ctrl->req) {
@@ -1808,12 +2086,12 @@ static int usbclass_setup(FAR struct usbdevclass_driver_s *driver,
               usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDCLASSREQ),ctrl->req);
               break;
           }
-        }                      
+        }
+#endif
         default:
           usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_UNSUPPORTEDTYPE), ctrl->type);
           break;
     }
-    
     /* Respond to the setup command if data was returned.  On an error return
      * value (ret < 0), the USB driver will stall.
      */
@@ -1894,6 +2172,7 @@ static void usbclass_disconnect(FAR struct usbdevclass_driver_s *driver,
 
 void  usbtmc_ficlTextOut(ficlCallback *callback, char *message)
 {
+#if 0
   FAR struct usbtmc_dev_s *priv = (struct usbtmc_dev_s *)callback->context;
   uint32_t transfersize,size;
   usbtmc_bulkin_header *pHeader = NULL;
@@ -1944,10 +2223,12 @@ void  usbtmc_ficlTextOut(ficlCallback *callback, char *message)
 
     }
   }
+#endif
 }
 
 void usbtmc_reportADCData(struct usbtmc_dev_s *priv) 
 {
+#if 0
   uint8_t *pADCDMABuff = &g_adc1_dmabuff;
   int ret;
 
@@ -1990,10 +2271,12 @@ void usbtmc_reportADCData(struct usbtmc_dev_s *priv)
       pthread_mutex_unlock(&priv->txbuffer.mutex);
     }
   }
+#endif
 }
 
 void *usbtmc_decode_thread(void *arg) 
 {
+#if 0
   int ret;
   FAR struct usbtmc_dev_s *priv = (struct usbtmc_dev_s *)arg;
   uint8_t msg[USBTMC_EP_MXPACKET];
@@ -2128,6 +2411,7 @@ void *usbtmc_decode_thread(void *arg)
       }
     }
   }
+#endif
 }
 
 int usbdev_usbtmcinitialize(int minor)
@@ -2139,7 +2423,7 @@ int usbdev_usbtmcinitialize(int minor)
   int ret;
 
   /* Allocate the structures needed */
-
+  printf("+usbdev_usbtmcinitialize\n");
   alloc = (FAR struct usbtmc_alloc_s*)kmalloc(sizeof(struct usbtmc_alloc_s));
   if (!alloc)
     {
@@ -2155,7 +2439,8 @@ int usbdev_usbtmcinitialize(int minor)
   /* Initialize the USB serial driver structure */
 
   memset(priv, 0, sizeof(struct usbtmc_dev_s));
-  sq_init(&priv->reqlist);
+  sq_init(&priv->reqlist_ficl);
+  sq_init(&priv->reqlist_data);
 
   /* Initialize the USB class driver structure */
 
@@ -2176,11 +2461,14 @@ int usbdev_usbtmcinitialize(int minor)
       usbtrace(TRACE_CLSERROR(USBTMC_TRACEERR_DEVREGISTER), (uint16_t)-ret);
       goto errout_with_alloc;
     }
+  printf("-usbdev_usbtmcinitialize\n");
     return OK;
 
 errout_with_class:
+  printf("ERROR:unregister\n");
   usbdev_unregister(&drvr->drvr);
 errout_with_alloc:
+  printf("ERROR:kfree\n");
   kfree(alloc);
   return ret;
 }

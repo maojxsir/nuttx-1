@@ -18,6 +18,21 @@ config LCD_ILI93XX
     bool "Flash Power ili93xx lcd driver"
     default y
 
+config USBTMC_EPBULKOUTFICL
+    int "Ficl command bulk out endpoint"
+    default 1
+
+config USBTMC_EPBULKINFICL
+    int "Ficl command bulk in endpoint"
+    default 2
+
+config USBTMC_EPBULKOUTDATA
+    int "DATA bulk out endpoint"
+    default 3
+
+config USBTMC_EPBULKINDATA
+    int "DATA bulk in endpoint"
+    default 4
 
 
 endif

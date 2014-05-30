@@ -4284,6 +4284,7 @@ static void stm32_ep_freereq(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s
 #ifdef CONFIG_USBDEV_DMA
 static void *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 {
+  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
   usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
 
 #ifdef CONFIG_USBDEV_DMAMEMORY
@@ -4305,6 +4306,7 @@ static void *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 #ifdef CONFIG_USBDEV_DMA
 static void stm32_ep_freebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
+  FAR struct stm32_ep_s *privep = (FAR struct stm32_ep_s *)ep;
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
 
 #ifdef CONFIG_USBDEV_DMAMEMORY
@@ -5547,7 +5549,7 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
 
   FAR struct stm32_usbdev_s *priv = &g_otgfsdev;
   int ret;
-
+  printf("+usbdev_register\n");
   usbtrace(TRACE_DEVREGISTER, 0);
 
 #ifdef CONFIG_DEBUG
@@ -5594,7 +5596,7 @@ int usbdev_register(struct usbdevclass_driver_s *driver)
       stm32_pullup(&priv->usbdev, true);
       priv->usbdev.speed = USB_SPEED_FULL;
     }
-
+  printf("-usbdev_register:%d\n",ret);
   return ret;
 }
 

@@ -47,6 +47,7 @@
 #include "up_arch.h"
 #include "stm32f407-internal.h"
 #include <stm32_gpio.h>
+#include <stm32_ccm.h>
 
 /************************************************************************************
  * Definitions
@@ -95,11 +96,15 @@ void stm32_boardinitialize(void)
 #ifdef CONFIG_BOARD_INITIALIZE
 void board_initialize(void)
 {
+  ccm_initialize();
 #ifdef CONFIG_STM32_ADC1
     adc_devinit();
 #endif
 #ifdef CONFIG_STM32_DAC1
     dac_devinit();
+#endif
+#ifdef CONFIG_STM32_OTGFS
+    usbdev_usbtmcinitialize(0);
 #endif
 }
 #endif

@@ -95,7 +95,7 @@
  * allocators can be used just like the standard memory allocators.
  */
 
-#define ccm_malloc(s)      mm_malloc(&g_ccm_heap, s)
+#define ccm_malloc(s)      mm_malloc(&g_ccm_heap, s) 
 #define ccm_zalloc(s)      mm_zalloc(&g_ccm_heap, s)
 #define ccm_calloc(n,s)    mm_calloc(&g_ccm_heap, n,s)
 #define ccm_free(p)        mm_free(&g_ccm_heap, p)

@@ -35,7 +35,7 @@
 
 BUILDDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
--include $(TOPDIR)/Make.defs
+include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
 # Tools
@@ -47,7 +47,7 @@ endif
 # Include paths
 
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(BUILDDIR)/$(FICL_SUBDIR) $(BUILDDIR)/src}
-
+CFLAGS += -I../../../nuttx/arch/arm/src/chip -I../../include
 # Source Files
 
 ASRCS = setjmp.S

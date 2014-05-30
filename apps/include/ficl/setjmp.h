@@ -10,7 +10,7 @@
 #ifndef SETJMP_H_
 #define SETJMP_H_
 
-#include "asm/setjmp.h"
+#include <apps/ficl/asm/setjmp.h>
 
 /* __BEGIN_DECLS should be used at the beginning of your declarations,
    so that C++ compilers don't mangle their names.  Use __END_DECLS at

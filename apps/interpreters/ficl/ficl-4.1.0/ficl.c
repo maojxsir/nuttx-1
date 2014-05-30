@@ -46,12 +46,12 @@
 
 int ficl_main(int argc, char **argv)
 {
+    return 0;
+  
     int returnValue = 0;
     char buffer[256];
     ficlVm *vm;
-	ficlSystem *system;
-
-  up_lcdinitialize();
+  ficlSystem *system;
 
     system = ficlSystemCreate(NULL);
     ficlSystemCompileExtras(system);
@@ -71,7 +71,7 @@ int ficl_main(int argc, char **argv)
     while (returnValue != FICL_VM_STATUS_USER_EXIT)
     {
         fputs(FICL_PROMPT,stdout);
-	 fflush(stdout);
+        fflush(stdout);
         //if (fgets(buffer, sizeof(buffer), stdin) == NULL) break;
         readline(buffer,sizeof(buffer),stdin,stdout);
         returnValue = ficlVmEvaluate(vm, buffer);

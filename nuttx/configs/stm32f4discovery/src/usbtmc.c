@@ -284,8 +284,10 @@ struct usbtmc_dev_s
      * EPBULKIN; Read requests will be queued in the EBULKOUT.
      */
     
-    struct usbtmc_req_s wrreqs[CONFIG_USBTMC_NWRREQS];
-    struct usbtmc_req_s rdreqs[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s wrreqs_ficl[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s rdreqs_ficl[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s wrreqs_data[CONFIG_USBTMC_NWRREQS];
+    struct usbtmc_req_s rdreqs_data[CONFIG_USBTMC_NWRREQS];
     
     /* I/O buffers */
     
